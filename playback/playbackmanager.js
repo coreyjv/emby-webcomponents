@@ -1780,7 +1780,7 @@
                             IsVirtualUnaired: false,
                             IsMissing: false,
                             UserId: apiClient.getCurrentUserId(),
-                            Fields: "MediaSources,Chapters"
+                            Fields: "MediaSources,Chapters,Overview"
 
                         }).then(function (episodesResult) {
 
