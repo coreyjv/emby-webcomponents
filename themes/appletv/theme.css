@@ -12,7 +12,7 @@ html, .skinHeader {
     background-color: #eaeaea;
 }
 
-.skinHeader-withBackground, .formDialogHeader:not(.formDialogHeader-clear) {
+.skinHeader-withBackground, .formDialogHeader:not(.formDialogHeader-clear), .appfooter, .formDialogFooter:not(.formDialogFooter-clear) {
     color: rgba(0,0,0,.7);
     background: #303030;
     background: linear-gradient(to right,#BCBCBC, #A7B4B7, #BEB5A5, #ADBEC2, #B9C7CB);
@@ -20,7 +20,7 @@ html, .skinHeader {
 
 @supports ( (backdrop-filter: blur(1.5em)) or (-webkit-backdrop-filter: blur(1.5em)) ) {
 
-    .skinHeader-blurred {
+    .appfooter {
         background: linear-gradient(to right,rgba(188,188,188,.7), rgba(167,180,183,.7), rgba(190,181,165,.7), rgba(173,190,194,.7), rgba(185,199,203,.7));
         -webkit-backdrop-filter: blur(1.5em);
         backdrop-filter: blur(1.5em);
@@ -34,6 +34,10 @@ html, .skinHeader {
 
 .pageTitleWithDefaultLogo {
     background-image: url(../logodark.png);
+}
+
+html {
+    background: #D5E9F2;
 }
 
 .backgroundContainer, .dialog {
@@ -52,6 +56,7 @@ html, .skinHeader {
 /* buttons */
 .paper-icon-button-light:focus {
     color: #52B54B;
+    background-color: rgba(82, 181, 75, 0.2);
 }
 
 .raised, .fab {
@@ -60,20 +65,22 @@ html, .skinHeader {
     color: inherit;
 }
 
-.button-submit {
+    .raised:focus, .fab:focus {
+        background: rgba(0, 0, 0, .24);
+    }
+
+.detailButton-mobile-icon {
+    border-color: rgba(0, 0, 0, .3);
+}
+
+.button-submit:not(.emby-button-tv) {
     background: #52B54B;
     color: #fff;
 }
 
-.button-cancel {
-    background: #fff;
-    color: inherit;
-}
-
-.button-accent {
-    background: #52B54B;
-    color: #fff;
-}
+    .button-submit:not(.emby-button-tv):focus {
+        background: #5EC157;
+    }
 
 .checkboxLabel {
     color: inherit;
@@ -81,7 +88,7 @@ html, .skinHeader {
 
 .paperListLabel, .inputLabelUnfocused, .textareaLabelUnfocused, .inputLabel, .checkboxListLabel {
     color: #555;
-    color: rgba(0, 0, 0, .7);
+    color: rgba(0, 0, 0, .6);
 }
 
 .selectLabelFocused, .textareaLabelFocused, .inputLabelFocused, .button-link {
@@ -92,29 +99,17 @@ html, .skinHeader {
     border-color: currentColor;
 }
 
+.cardContent-shadow {
+    box-shadow: 0 0.0725em 0.29em 0 rgba(0, 0, 0, 0.37);
+}
+
 .paperList, .visualCardBox {
     background-color: #fff;
     background-color: rgba(0, 0, 0, .1);
 }
 
-.defaultCardBackground1 {
-    background-color: #009688;
-}
-
-.defaultCardBackground2 {
-    background-color: #D32F2F;
-}
-
-.defaultCardBackground3 {
-    background-color: #0288D1;
-}
-
-.defaultCardBackground4 {
-    background-color: #388E3C;
-}
-
-.defaultCardBackground5 {
-    background-color: #F57F17;
+.defaultCardBackground0, .defaultCardBackground1, .defaultCardBackground2, .defaultCardBackground3, .defaultCardBackground4, .defaultCardBackground5 {
+    background-color: rgba(0, 0, 0, .1);
 }
 
 .formDialogFooter:not(.formDialogFooter-clear) {
@@ -124,7 +119,7 @@ html, .skinHeader {
 
 .listItem .secondary, .nowPlayingBarSecondaryText, .secondaryText, .cardText-secondary, .programSecondaryTitle, .guide-programNameCaret, .fieldDescription {
     color: #888;
-    color: rgba(0, 0, 0, .5);
+    color: rgba(0, 0, 0, .6);
 }
 
 .actionsheetDivider {
@@ -151,22 +146,6 @@ html, .skinHeader {
     color: rgba(255, 255, 255, .87);
 }
 
-/* appfooter */
-.appfooter, .formDialogFooter:not(.formDialogFooter-clear) {
-    color: rgba(0,0,0,.7);
-    background: #303030;
-    background: linear-gradient(to right,#BCBCBC, #A7B4B7, #BEB5A5, #ADBEC2, #B9C7CB);
-}
-
-@supports ( (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) ) {
-
-    .appfooter-blurred {
-        background: rgba(24,24,24,.7);
-        -webkit-backdrop-filter: blur(20px);
-        backdrop-filter: blur(20px);
-    }
-}
-
 .nowPlayingBarSecondaryText {
     color: #999;
 }
@@ -189,7 +168,7 @@ html, .skinHeader {
 /* alphaPicker */
 .alphaPickerButton {
     color: #555;
-    color: rgba(0, 0, 0, .7);
+    color: rgba(0, 0, 0, .6);
     background-color: transparent;
 }
 
@@ -199,7 +178,7 @@ html, .skinHeader {
 }
 
 /* listItem */
-.listItem-shaded:nth-child(even), .detailTableBodyRow-shaded:nth-child(even) {
+.detailTableBodyRow-shaded:nth-child(even) {
     background: #f8f8f8;
     background: rgba(0, 0, 0, .1);
 }
@@ -271,7 +250,7 @@ html, .skinHeader {
     background-color: rgba(82, 181, 75, 0.26);
 }
 
-.emby-checkbox:checked + span + span + .checkboxOutline > .checkboxOutlineTick {
+.emby-checkbox:checked + span + span + .checkboxOutline {
     background-color: #52B54B;
 }
 
@@ -300,11 +279,6 @@ html, .skinHeader {
 /* main nav drawer */
 .mainDrawer {
     background: #fff;
-}
-
-.navMenuDivider {
-    background: #eaeaea;
-    background: rgba(0, 0, 0, .12);
 }
 
 .navMenuOption:hover {
@@ -383,7 +357,7 @@ html, .skinHeader {
 
 .guide-date-tab-button {
     color: #555;
-    color: rgba(0, 0, 0, .54);
+    color: rgba(0, 0, 0, .6);
 }
 
     .guide-date-tab-button.emby-tab-button-active {
@@ -402,14 +376,6 @@ html, .skinHeader {
 /* detail screen */
 .itemBackdropFader {
     background: linear-gradient(rgba(0,0,0,0), #E4E2DC);
-}
-
-@media all and (min-width: 62.5em) {
-
-    .detailButton-mobile {
-        background: rgba(0,0,0,.14) !important;
-        backdrop-filter: blur(10px);
-    }
 }
 
 /* used by directory picker and other areas */
@@ -444,4 +410,43 @@ html, .skinHeader {
 /* cards */
 .card:focus .card-focuscontent {
     border-color: #52B54B;
+}
+
+/* emby-slider */
+.emby-slider-background {
+    background: rgba(0,0,0,.3);
+}
+
+.emby-slider {
+    color: #52B54B;
+}
+
+    .emby-slider::-moz-range-track {
+        background: #444;
+    }
+
+    .emby-slider::-moz-range-progress {
+        background: #52B54B;
+    }
+
+    .emby-slider::-webkit-slider-thumb {
+        background: #52B54B;
+    }
+
+    .emby-slider::-moz-range-thumb {
+        background: #52B54B;
+    }
+
+    .emby-slider::-ms-thumb {
+        background: #52B54B;
+    }
+
+.emby-slider-background-lower {
+    background-color: #52B54B;
+}
+
+/* scrollbuttons */
+.scrollbuttoncontainer {
+    color: #fff;
+    background: rgba(0,0,0,.9);
 }

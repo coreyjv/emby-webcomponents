@@ -100,7 +100,7 @@
         });
     }
 
-    function fillSubtitleList(context, item) {
+    function fillSubtitleList(context, item, user) {
 
         var streams = item.MediaStreams || [];
 
@@ -115,18 +115,14 @@
 
             html += '<h2>' + globalize.translate('sharedcomponents#MySubtitles') + '</h2>';
 
-            if (layoutManager.tv) {
-                html += '<div class="paperList paperList-clear">';
-            } else {
-                html += '<div class="paperList">';
-            }
+            html += '<div>';
 
             html += subs.map(function (s) {
 
                 var itemHtml = '';
 
                 var tagName = layoutManager.tv ? 'button' : 'div';
-                var className = layoutManager.tv && s.Path ? 'listItem btnDelete' : 'listItem';
+                var className = layoutManager.tv && s.Path ? 'listItem listItem-border btnDelete' : 'listItem listItem-border';
 
                 if (layoutManager.tv) {
                     className += ' listItem-focusscale listItem-button';
@@ -136,12 +132,16 @@
 
                 itemHtml += '<' + tagName + ' class="' + className + '" data-index="' + s.Index + '">';
 
-                itemHtml += '<i class="listItemIcon md-icon">closed_caption</i>';
+                itemHtml += '<i class="listItemIcon md-icon">&#xE01c;</i>';
 
                 itemHtml += '<div class="listItemBody two-line">';
 
-                itemHtml += '<div>';
+                itemHtml += '<div class="listItemBodyText">';
                 itemHtml += s.DisplayTitle || '';
+                itemHtml += '</div>';
+
+                itemHtml += '<div class="listItemBodyText secondary">';
+                itemHtml += (s.Codec || '').toUpperCase();
                 itemHtml += '</div>';
 
                 if (s.Path) {
@@ -151,9 +151,11 @@
                 itemHtml += '</a>';
                 itemHtml += '</div>';
 
-                if (!layoutManager.tv) {
-                    if (s.Path) {
-                        itemHtml += '<button is="paper-icon-button-light" data-index="' + s.Index + '" title="' + globalize.translate('sharedcomponents#Delete') + '" class="btnDelete listItemButton"><i class="md-icon">delete</i></button>';
+                if (user.Policy.EnableSubtitleManagement || (user.Policy.EnableSubtitleManagement == null && user.Policy.IsAdministrator)) {
+                    if (!layoutManager.tv) {
+                        if (s.Path) {
+                            itemHtml += '<button is="paper-icon-button-light" data-index="' + s.Index + '" title="' + globalize.translate('sharedcomponents#Delete') + '" class="btnDelete listItemButton"><i class="md-icon">&#xE872;</i></button>';
+                        }
                     }
                 }
 
@@ -238,22 +240,22 @@
                 }
                 html += '<h2>' + provider + '</h2>';
                 if (layoutManager.tv) {
-                    html += '<div class="paperList paperList-clear">';
+                    html += '<div>';
                 } else {
-                    html += '<div class="paperList">';
+                    html += '<div>';
                 }
                 lastProvider = provider;
             }
 
             var tagName = layoutManager.tv ? 'button' : 'div';
-            var className = layoutManager.tv ? 'listItem btnOptions' : 'listItem';
+            var className = layoutManager.tv ? 'listItem listItem-border btnOptions' : 'listItem listItem-border';
             if (layoutManager.tv) {
                 className += ' listItem-focusscale listItem-button';
             }
 
             html += '<' + tagName + ' class="' + className + '" data-subid="' + result.Id + '">';
 
-            html += '<i class="listItemIcon md-icon">closed_caption</i>';
+            html += '<i class="listItemIcon md-icon">&#xE01c;</i>';
 
             var bodyClass = result.Comment || result.IsHashMatch ? 'three-line' : 'two-line';
 
@@ -331,22 +333,31 @@
 
             currentItem = item;
 
-            fillSubtitleList(context, item);
-            var file = item.Path || '';
-            var index = Math.max(file.lastIndexOf('/'), file.lastIndexOf('\\'));
-            if (index > -1) {
-                file = file.substring(index + 1);
-            }
+            apiClient.getCurrentUser().then(function (user) {
 
-            if (file) {
-                context.querySelector('.pathValue').innerHTML = file;
-                context.querySelector('.originalFile').classList.remove('hide');
-            } else {
-                context.querySelector('.pathValue').innerHTML = '';
-                context.querySelector('.originalFile').classList.add('hide');
-            }
+                if (user.Policy.EnableSubtitleDownloading || (user.Policy.EnableSubtitleDownloading == null && user.Policy.IsAdministrator)) {
+                    context.querySelector('.subtitleSearchContainer').classList.remove('hide');
+                } else {
+                    context.querySelector('.subtitleSearchContainer').classList.add('hide');
+                }
 
-            loading.hide();
+                fillSubtitleList(context, item, user);
+                var file = item.Path || '';
+                var index = Math.max(file.lastIndexOf('/'), file.lastIndexOf('\\'));
+                if (index > -1) {
+                    file = file.substring(index + 1);
+                }
+
+                if (file) {
+                    context.querySelector('.pathValue').innerHTML = file;
+                    context.querySelector('.originalFile').classList.remove('hide');
+                } else {
+                    context.querySelector('.pathValue').innerHTML = '';
+                    context.querySelector('.originalFile').classList.add('hide');
+                }
+
+                loading.hide();
+            });
         }
 
         if (typeof itemId === 'string') {
@@ -403,7 +414,7 @@
         var items = [];
 
         items.push({
-            name: Globalize.translate('sharedcomponents#Download'),
+            name: globalize.translate('sharedcomponents#Download'),
             id: 'download'
         });
 

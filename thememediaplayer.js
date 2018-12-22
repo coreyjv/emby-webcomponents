@@ -31,13 +31,16 @@ define(['playbackManager', 'userSettings', 'connectionManager'], function (playb
             });
 
         } else {
-
-            if (currentOwnerId) {
-                playbackManager.stop();
-            }
-
-            currentOwnerId = null;
+            stopIfPlaying();
         }
+    }
+
+    function stopIfPlaying() {
+        if (currentOwnerId) {
+            playbackManager.stop();
+        }
+
+        currentOwnerId = null;
     }
 
     function enabled(mediaType) {
@@ -54,15 +57,25 @@ define(['playbackManager', 'userSettings', 'connectionManager'], function (playb
     function loadThemeMedia(item) {
 
         if (item.CollectionType) {
+            stopIfPlaying();
             return;
         }
 
         if (excludeTypes.indexOf(item.Type) !== -1) {
+            stopIfPlaying();
             return;
         }
 
         var apiClient = connectionManager.getApiClient(item.ServerId);
-        apiClient.getThemeMedia(apiClient.getCurrentUserId(), item.Id, true).then(function (themeMediaResult) {
+
+        apiClient.getThemeMedia(item.Id, {
+
+            UserId: apiClient.getCurrentUserId(),
+            InheritFromParent: true,
+            EnableThemeSongs: userSettings.enableThemeSongs(),
+            EnableThemeVideos: userSettings.enableThemeVideos()
+
+        }).then(function (themeMediaResult) {
 
             var ownerId = themeMediaResult.ThemeVideosResult.Items.length ? themeMediaResult.ThemeVideosResult.OwnerId : themeMediaResult.ThemeSongsResult.OwnerId;
 

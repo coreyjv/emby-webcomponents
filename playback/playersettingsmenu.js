@@ -196,6 +196,11 @@ define(['connectionManager', 'actionsheet', 'datetime', 'playbackManager', 'glob
             });
         }
 
+        menuItems.push({
+            name: globalize.translate('sharedcomponents#PlaybackSettings'),
+            id: 'playbacksettings'
+        });
+
         if (user && user.Policy.EnableVideoPlaybackTranscoding) {
             var secondaryQualityText = getQualitySecondaryText(player);
 
@@ -226,6 +231,11 @@ define(['connectionManager', 'actionsheet', 'datetime', 'playbackManager', 'glob
             });
         }
 
+        menuItems.push({
+            name: globalize.translate('sharedcomponents#SubtitleSettings'),
+            id: 'subtitlesettings'
+        });
+
         return actionsheet.show({
 
             items: menuItems,
@@ -254,6 +264,25 @@ define(['connectionManager', 'actionsheet', 'datetime', 'playbackManager', 'glob
         });
     }
 
+    function alertText(text) {
+
+        return new Promise(function (resolve, reject) {
+
+            require(['alert'], function (alert) {
+
+                alert(text).then(resolve);
+            });
+        });
+    }
+
+    function showSubtitleSettings(player, btn) {
+        return alertText(globalize.translate('sharedcomponents#SubtitleSettingsIntro'));
+    }
+
+    function showPlaybackSettings(player, btn) {
+        return alertText(globalize.translate('sharedcomponents#PlaybackSettingsIntro'));
+    }
+
     function handleSelectedOption(id, options, player) {
 
         switch (id) {
@@ -264,6 +293,10 @@ define(['connectionManager', 'actionsheet', 'datetime', 'playbackManager', 'glob
                 return showAspectRatioMenu(player, options.positionTo);
             case 'repeatmode':
                 return showRepeatModeMenu(player, options.positionTo);
+            case 'subtitlesettings':
+                return showSubtitleSettings(player, options.positionTo);
+            case 'playbacksettings':
+                return showPlaybackSettings(player, options.positionTo);
             case 'stats':
                 if (options.onOption) {
                     options.onOption('stats');

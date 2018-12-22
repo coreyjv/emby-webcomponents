@@ -23,24 +23,24 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
         showSearch: function () {
             skinManager.getCurrentSkin().search();
         },
-        showGenre: function (options) {
-            skinManager.getCurrentSkin().showGenre(options);
-        },
         showGuide: function () {
-            skinManager.getCurrentSkin().showGuide({
-                serverId: connectionManager.currentApiClient().serverId()
-            });
+            appRouter.show(appRouter.getRouteUrl('livetv', {
+                serverId: connectionManager.currentApiClient().serverId(),
+                section: 'guide'
+            }));
         },
         showLiveTV: function () {
-            skinManager.getCurrentSkin().showLiveTV({
+            appRouter.show(appRouter.getRouteUrl('livetv', {
                 serverId: connectionManager.currentApiClient().serverId()
-            });
+            }));
         },
         showRecordedTV: function () {
-            skinManager.getCurrentSkin().showRecordedTV();
+            appRouter.show(appRouter.getRouteUrl('recordedtv', {
+                serverId: connectionManager.currentApiClient().serverId()
+            }));
         },
         showFavorites: function () {
-            skinManager.getCurrentSkin().showFavorites();
+            invokeShortcut('favorites_' + connectionManager.currentApiClient().serverId());
         },
         showNowPlaying: function () {
             skinManager.getCurrentSkin().showNowPlaying();
@@ -96,16 +96,7 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
                 break;
             case 'ServerUpdateNeeded':
                 {
-                    require(['alert'], function (alert) {
-                        alert({
-
-                            text: globalize.translate('sharedcomponents#ServerUpdateNeeded', 'https://emby.media'),
-                            html: globalize.translate('sharedcomponents#ServerUpdateNeeded', '<a href="https://emby.media">https://emby.media</a>')
-
-                        }).then(function () {
-                            appRouter.showSelectServer();
-                        });
-                    });
+                    appRouter.showSelectServer();
                 }
                 break;
             default:
@@ -236,55 +227,6 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
         });
     }
 
-    var msgTimeout;
-    var forcedLogoutMsg;
-    function onForcedLogoutMessageTimeout() {
-
-        var msg = forcedLogoutMsg;
-        forcedLogoutMsg = null;
-
-        if (msg) {
-            require(['alert'], function (alert) {
-                alert(msg);
-            });
-        }
-    }
-
-    function showForcedLogoutMessage(msg) {
-
-        forcedLogoutMsg = msg;
-        if (msgTimeout) {
-            clearTimeout(msgTimeout);
-        }
-
-        msgTimeout = setTimeout(onForcedLogoutMessageTimeout, 100);
-    }
-
-    function onRequestFail(e, data) {
-
-        var apiClient = this;
-
-        if (data.status === 401) {
-            if (data.errorCode === "ParentalControl") {
-
-                var isCurrentAllowed = currentRouteInfo ? (currentRouteInfo.route.anonymous || currentRouteInfo.route.startup) : true;
-
-                // Bounce to the login screen, but not if a password entry fails, obviously
-                if (!isCurrentAllowed) {
-
-                    showForcedLogoutMessage(globalize.translate('sharedcomponents#AccessRestrictedTryAgainLater'));
-
-                    if (connectionManager.isLoggedIntoConnect()) {
-                        appRouter.showConnectLogin();
-                    } else {
-                        appRouter.showLocalLogin(apiClient.serverId());
-                    }
-                }
-
-            }
-        }
-    }
-
     function onBeforeExit(e) {
 
         if (browser.web0s) {
@@ -357,8 +299,16 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
         return null;
     }
 
+    function onNetworkChanged() {
+        connectionManager.onNetworkChanged();
+    }
+
+    if (appHost.supports('multiserver') && navigator.connection && navigator.connection.addEventListener) {
+        navigator.connection.addEventListener('change', onNetworkChanged);
+    }
+
     function getMaxBandwidthIOS() {
-        return 800000;
+        return 1500000;
     }
 
     function onApiClientCreated(e, newApiClient) {
@@ -370,9 +320,6 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
         } else {
             newApiClient.getMaxBandwidth = getMaxBandwidth;
         }
-
-        events.off(newApiClient, 'requestfail', onRequestFail);
-        events.on(newApiClient, 'requestfail', onRequestFail);
     }
 
     function initApiClient(apiClient) {
@@ -427,12 +374,8 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
 
     function enableHistory() {
 
-        //if (browser.edgeUwp) {
-        //    return false;
-        //}
-
         // shows status bar on navigation
-        if (browser.xboxOne) {
+        if (browser.xboxOne && !browser.edgeUwp) {
             return false;
         }
 
@@ -592,7 +535,7 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
     }
 
     function getRequestFile() {
-        var path = window.location.pathname || '';
+        var path = self.location.pathname || '';
 
         var index = path.lastIndexOf('/');
         if (index !== -1) {
@@ -613,7 +556,7 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
         return str.lastIndexOf(srch) === srch.length - 1;
     }
 
-    var baseRoute = window.location.href.split('?')[0].replace(getRequestFile(), '');
+    var baseRoute = self.location.href.split('?')[0].replace(getRequestFile(), '');
     // support hashbang
     baseRoute = baseRoute.split('#')[0];
     if (endsWith(baseRoute, '/') && !endsWith(baseRoute, '://')) {
@@ -737,6 +680,9 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
         if (item === 'managedownloads') {
             return 'offline/managedownloads.html';
         }
+        if (item === 'settings') {
+            return 'settings/settings.html';
+        }
 
         return skinManager.getCurrentSkin().getRouteUrl(item, options);
     }
@@ -825,7 +771,7 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
     }
 
     function setBaseRoute() {
-        var baseRoute = window.location.pathname.replace(getRequestFile(), '');
+        var baseRoute = self.location.pathname.replace(getRequestFile(), '');
         if (baseRoute.lastIndexOf('/') === baseRoute.length - 1) {
             baseRoute = baseRoute.substring(0, baseRoute.length - 1);
         }
@@ -845,16 +791,22 @@ define(['loading', 'globalize', 'events', 'viewManager', 'layoutManager', 'skinM
 
     function invokeShortcut(id) {
 
-        if (id === 'backgroundsync') {
+        if (id.indexOf('library-') === 0) {
 
-            syncNow();
-        }
-        else if (id.indexOf('library-') === 0) {
             id = id.replace('library-', '');
 
             id = id.split('_');
 
             appRouter.showItem(id[0], id[1]);
+
+        } else if (id.indexOf('item-') === 0) {
+
+            id = id.replace('item-', '');
+
+            id = id.split('_');
+
+            appRouter.showItem(id[0], id[1]);
+
         } else {
 
             id = id.split('_');

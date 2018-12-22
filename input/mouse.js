@@ -17,6 +17,8 @@ define(['inputManager', 'focusManager', 'browser', 'layoutManager', 'events', 'd
 
     function removeIdleClasses() {
 
+        isMouseIdle = false;
+
         var classList = document.body.classList;
 
         classList.remove('mouseIdle');
@@ -25,12 +27,14 @@ define(['inputManager', 'focusManager', 'browser', 'layoutManager', 'events', 'd
 
     function addIdleClasses() {
 
+        isMouseIdle = true;
+
         var classList = document.body.classList;
 
         classList.add('mouseIdle');
 
         if (layoutManager.tv) {
-            classList.remove('mouseIdle-tv');
+            classList.add('mouseIdle-tv');
         }
     }
 
@@ -66,7 +70,6 @@ define(['inputManager', 'focusManager', 'browser', 'layoutManager', 'events', 'd
         notifyApp();
 
         if (isMouseIdle) {
-            isMouseIdle = false;
             removeIdleClasses();
             events.trigger(self, 'mouseactive');
         }
@@ -80,7 +83,7 @@ define(['inputManager', 'focusManager', 'browser', 'layoutManager', 'events', 'd
             if (!isMouseIdle) {
                 var parent = focusManager.focusableParent(e.target);
                 if (parent) {
-                    focusManager.focus(e.target);
+                    focusManager.focus(parent);
                 }
             }
         }
@@ -106,7 +109,6 @@ define(['inputManager', 'focusManager', 'browser', 'layoutManager', 'events', 'd
     function onMouseInterval() {
 
         if (!isMouseIdle && mouseIdleTime() >= 5000) {
-            isMouseIdle = true;
             addIdleClasses();
             events.trigger(self, 'mouseidle');
         }
@@ -128,19 +130,23 @@ define(['inputManager', 'focusManager', 'browser', 'layoutManager', 'events', 'd
             clearInterval(interval);
             mouseInterval = null;
         }
-
-        removeIdleClasses();
     }
 
     function initMouse() {
 
         stopMouseInterval();
 
+        if (layoutManager.desktop) {
+            removeIdleClasses();
+        } else {
+            addIdleClasses();
+        }
+
         dom.removeEventListener(document, (window.PointerEvent ? 'pointermove' : 'mousemove'), onPointerMove, {
             passive: true
         });
 
-        if (layoutManager.tv) {
+        if (!layoutManager.mobile) {
             startMouseInterval();
 
             dom.addEventListener(document, (window.PointerEvent ? 'pointermove' : 'mousemove'), onPointerMove, {

@@ -58,17 +58,28 @@
             dialogHelper.close(dlg);
             require(['toast'], function (toast) {
 
-                var msg = target === apiClient.deviceId() ? globalize.translate('sharedcomponents#DownloadingDots') : globalize.translate('sharedcomponents#SyncJobCreated');
+                showSubmissionToast(target, apiClient);
 
-                toast(msg);
-
-                if (syncOptions.isLocalSync) {
+                if (syncOptions.mode === 'download') {
                     syncNow();
                 }
             });
         });
 
         return true;
+    }
+
+
+    function showSubmissionToast(targetId, apiClient) {
+
+        require(['toast'], function (toast) {
+
+            var msg = targetId === apiClient.deviceId() ?
+                globalize.translate('sharedcomponents#DownloadingDots') :
+                globalize.translate('sharedcomponents#SyncingDots');
+
+            toast(msg);
+        });
     }
 
     function syncNow() {
@@ -120,11 +131,9 @@
 
             require(['toast'], function (toast) {
 
-                var msg = targetId === apiClient.deviceId() ? globalize.translate('sharedcomponents#DownloadingDots') : globalize.translate('sharedcomponents#SyncJobCreated');
+                showSubmissionToast(targetId, apiClient);
 
-                toast(msg);
-
-                if (syncOptions.isLocalSync) {
+                if (syncOptions.mode === 'download') {
                     syncNow();
                 }
             });
@@ -175,14 +184,12 @@
 
             require(['emby-checkbox', 'emby-input', 'emby-select'], function () {
 
-                appHost.appInfo().then(function (appInfo) {
-                    renderFormInternal(options, appInfo, resolve);
-                });
+                renderFormInternal(options, connectionManager.deviceId(), resolve);
             });
         });
     }
 
-    function renderFormInternal(options, appInfo, resolve) {
+    function renderFormInternal(options, defaultTargetId, resolve) {
 
         var elem = options.elem;
         var dialogOptions = options.dialogOptions;
@@ -191,9 +198,10 @@
 
         var html = '';
 
-        var targetContainerClass = options.isLocalSync ? ' hide' : '';
+        var mode = options.mode;
+        var targetContainerClass = mode === 'download' ? ' hide' : '';
 
-        var syncTargetLabel = globalize.translate('sharedcomponents#LabelSyncTo');
+        var syncTargetLabel = mode === 'convert' ? globalize.translate('sharedcomponents#LabelConvertTo') : globalize.translate('sharedcomponents#LabelSyncTo');
 
         if (options.readOnlySyncTarget) {
             html += '<div class="inputContainer' + targetContainerClass + '">';
@@ -205,7 +213,7 @@
 
             html += targets.map(function (t) {
 
-                var isSelected = t.Id === appInfo.deviceId;
+                var isSelected = defaultTargetId === t.Id;
                 var selectedHtml = isSelected ? ' selected="selected"' : '';
                 return '<option' + selectedHtml + ' value="' + t.Id + '">' + t.Name + '</option>';
 
@@ -221,29 +229,49 @@
             html += '</div>';
         }
 
+        var settingsDisabled = false;
+
+        if (options.readOnlySyncTarget && dialogOptions.Options.indexOf('UnwatchedOnly') === -1 && dialogOptions.Options.indexOf('SyncNewContent') === -1 && dialogOptions.Options.indexOf('ItemLimit') === -1) {
+
+            // for non-dynamic sync-jobs and non-new it doesn't make any sense to allow modifying any settings
+            settingsDisabled = true;
+        }
+
         html += '<div class="fldProfile selectContainer hide">';
-        html += '<select is="emby-select" id="selectProfile" label="' + globalize.translate('sharedcomponents#LabelProfile') + '">';
+        html += '<select is="emby-select" id="selectProfile" ' + (settingsDisabled ? 'disabled' : '') + '  label="' + globalize.translate('sharedcomponents#LabelProfile') + '">';
         html += '</select>';
         html += '<div class="fieldDescription profileDescription"></div>';
         html += '</div>';
 
         html += '<div class="fldQuality selectContainer hide">';
-        html += '<select is="emby-select" id="selectQuality" required="required" label="' + globalize.translate('sharedcomponents#LabelQuality') + '">';
+        html += '<select is="emby-select" id="selectQuality" required="required" ' + (settingsDisabled ? 'disabled' : '') + '  label="' + globalize.translate('sharedcomponents#LabelQuality') + '">';
         html += '</select>';
         html += '<div class="fieldDescription qualityDescription"></div>';
         html += '</div>';
 
         html += '<div class="fldBitrate inputContainer hide">';
-        html += '<input is="emby-input" type="number" step=".1" min=".1" id="txtBitrate" label="' + globalize.translate('sharedcomponents#LabelBitrateMbps') + '"/>';
+        html += '<input is="emby-input" type="number" step=".1" min=".1" ' + (settingsDisabled ? 'readonly' : '') + ' id="txtBitrate" label="' + globalize.translate('sharedcomponents#LabelBitrateMbps') + '"/>';
         html += '</div>';
 
         if (dialogOptions.Options.indexOf('UnwatchedOnly') !== -1) {
             html += '<div class="checkboxContainer checkboxContainer-withDescription">';
             html += '<label>';
             html += '<input is="emby-checkbox" type="checkbox" id="chkUnwatchedOnly"/>';
-            html += '<span>' + globalize.translate('sharedcomponents#SyncUnwatchedVideosOnly') + '</span>';
+
+            if (mode === 'convert') {
+                html += '<span>' + globalize.translate('sharedcomponents#ConvertUnwatchedVideosOnly') + '</span>';
+            } else {
+                html += '<span>' + globalize.translate('sharedcomponents#SyncUnwatchedVideosOnly') + '</span>';
+            }
+
             html += '</label>';
-            html += '<div class="fieldDescription checkboxFieldDescription">' + globalize.translate('sharedcomponents#SyncUnwatchedVideosOnlyHelp') + '</div>';
+
+            if (mode === 'convert') {
+                html += '<div class="fieldDescription checkboxFieldDescription">' + globalize.translate('sharedcomponents#ConvertUnwatchedVideosOnlyHelp') + '</div>';
+            } else {
+                html += '<div class="fieldDescription checkboxFieldDescription">' + globalize.translate('sharedcomponents#SyncUnwatchedVideosOnlyHelp') + '</div>';
+            }
+
             html += '</div>';
         }
 
@@ -251,16 +279,33 @@
             html += '<div class="checkboxContainer checkboxContainer-withDescription">';
             html += '<label>';
             html += '<input is="emby-checkbox" type="checkbox" id="chkSyncNewContent"/>';
-            html += '<span>' + globalize.translate('sharedcomponents#AutomaticallySyncNewContent') + '</span>';
+
+            if (mode === 'convert') {
+                html += '<span>' + globalize.translate('sharedcomponents#AutomaticallyConvertNewContent') + '</span>';
+            } else {
+                html += '<span>' + globalize.translate('sharedcomponents#AutomaticallySyncNewContent') + '</span>';
+            }
+
             html += '</label>';
-            html += '<div class="fieldDescription checkboxFieldDescription">' + globalize.translate('sharedcomponents#AutomaticallySyncNewContentHelp') + '</div>';
+
+            if (mode === 'convert') {
+                html += '<div class="fieldDescription checkboxFieldDescription">' + globalize.translate('sharedcomponents#AutomaticallyConvertNewContentHelp') + '</div>';
+            } else {
+                html += '<div class="fieldDescription checkboxFieldDescription">' + globalize.translate('sharedcomponents#AutomaticallySyncNewContentHelp') + '</div>';
+            }
             html += '</div>';
         }
 
         if (dialogOptions.Options.indexOf('ItemLimit') !== -1) {
             html += '<div class="inputContainer">';
             html += '<input is="emby-input" type="number" step="1" min="1" id="txtItemLimit" label="' + globalize.translate('sharedcomponents#LabelItemLimit') + '"/>';
-            html += '<div class="fieldDescription">' + globalize.translate('sharedcomponents#LabelItemLimitHelp') + '</div>';
+
+            if (mode === 'convert') {
+                html += '<div class="fieldDescription">' + globalize.translate('sharedcomponents#ConvertItemLimitHelp') + '</div>';
+            } else {
+                html += '<div class="fieldDescription">' + globalize.translate('sharedcomponents#DownloadItemLimitHelp') + '</div>';
+            }
+
             html += '</div>';
         }
 
@@ -366,7 +411,7 @@
 
     function showSyncMenu(options) {
 
-        if (options.isLocalSync && appSettings.syncOnlyOnWifi() && !validateNetwork()) {
+        if (options.mode === 'download' && appSettings.syncOnlyOnWifi() && !validateNetwork()) {
             return Promise.reject();
         }
 
@@ -377,7 +422,7 @@
 
     function enableAutoSync(options) {
 
-        if (!options.isLocalSync) {
+        if (options.mode !== 'download') {
             return false;
         }
 
@@ -423,7 +468,9 @@
             }).join(','),
 
             ParentId: options.ParentId,
-            Category: options.Category
+            Category: options.Category,
+            IncludeProviders: options.mode === 'convert' ? 'ConvertSyncProvider' : null,
+            ExcludeProviders: options.mode === 'convert' ? null : 'ConvertSyncProvider'
         });
 
         return dialogOptionsFn().then(function (dialogOptions) {
@@ -451,7 +498,9 @@
             html += '<button is="paper-icon-button-light" class="btnCancel autoSize" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
             html += '<h3 class="formDialogHeaderTitle">';
 
-            var syncButtonLabel = options.isLocalSync ? globalize.translate('sharedcomponents#Download') : globalize.translate('sharedcomponents#Sync');
+            var syncButtonLabel = options.mode === 'download' ?
+                globalize.translate('sharedcomponents#Download') :
+                (options.mode === 'convert' ? globalize.translate('sharedcomponents#Convert') : globalize.translate('sharedcomponents#Sync'));
 
             html += syncButtonLabel;
             html += '</h3>';
@@ -505,7 +554,7 @@
                 elem: dlg.querySelector('.formFields'),
                 dialogOptions: dialogOptions,
                 dialogOptionsFn: dialogOptionsFn,
-                isLocalSync: options.isLocalSync
+                mode: options.mode
             });
 
             return promise.then(function () {

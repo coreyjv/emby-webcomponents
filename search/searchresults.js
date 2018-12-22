@@ -11,7 +11,8 @@
             Recursive: true,
             ImageTypeLimit: 0,
             EnableImages: false,
-            ParentId: instance.options.parentId
+            ParentId: instance.options.parentId,
+            EnableTotalRecordCount: false
         };
 
         apiClient.getItems(apiClient.getCurrentUserId(), options).then(function (result) {
@@ -61,9 +62,12 @@
                 queryIncludeItemTypes === 'MusicAlbum' ||
                 queryIncludeItemTypes === 'Audio' ||
                 queryIncludeItemTypes === 'Book' ||
-                queryIncludeItemTypes === 'AudioBook' ||
-                query.MediaTypes === 'Video' ||
-                query.MediaTypes === 'Photo') {
+                queryIncludeItemTypes === 'Game' ||
+                queryIncludeItemTypes === 'Playlist' ||
+                queryIncludeItemTypes === 'PhotoAlbum' ||
+                queryIncludeItemTypes === 'TvChannel' ||
+                queryIncludeItemTypes === 'Video' ||
+                queryIncludeItemTypes === 'Photo') {
                 allowSearch = false;
             }
         }
@@ -77,9 +81,12 @@
                 queryIncludeItemTypes === 'MusicAlbum' ||
                 queryIncludeItemTypes === 'Audio' ||
                 queryIncludeItemTypes === 'Book' ||
-                queryIncludeItemTypes === 'AudioBook' ||
-                query.MediaTypes === 'Video' ||
-                query.MediaTypes === 'Photo') {
+                queryIncludeItemTypes === 'Game' ||
+                queryIncludeItemTypes === 'Playlist' ||
+                queryIncludeItemTypes === 'PhotoAlbum' ||
+                queryIncludeItemTypes === 'TvChannel' ||
+                queryIncludeItemTypes === 'Video' ||
+                queryIncludeItemTypes === 'Photo') {
                 allowSearch = false;
             }
         }
@@ -90,6 +97,7 @@
             else if (queryIncludeItemTypes === 'Series' ||
                 queryIncludeItemTypes === 'Episode' ||
                 queryIncludeItemTypes === 'LiveTvProgram' ||
+                queryIncludeItemTypes === 'TvChannel' ||
                 queryIncludeItemTypes === 'Movie') {
                 allowSearch = false;
             }
@@ -103,10 +111,12 @@
                 queryIncludeItemTypes === 'MusicAlbum' ||
                 queryIncludeItemTypes === 'Audio' ||
                 queryIncludeItemTypes === 'Book' ||
-                queryIncludeItemTypes === 'AudioBook' ||
+                queryIncludeItemTypes === 'Game' ||
+                queryIncludeItemTypes === 'PhotoAlbum' ||
                 queryIncludeItemTypes === 'Movie' ||
-                query.MediaTypes === 'Video' ||
-                query.MediaTypes === 'Photo') {
+                queryIncludeItemTypes === 'Playlist' ||
+                queryIncludeItemTypes === 'Video' ||
+                queryIncludeItemTypes === 'Photo') {
                 allowSearch = false;
             }
         }
@@ -119,6 +129,30 @@
                 SearchHints: []
             });
         }
+
+        // Convert the search hint query to a regular item query
+        if (apiClient.isMinServerVersion('3.4.1.31')) {
+
+            query.Fields = 'PrimaryImageAspectRatio,CanDelete,BasicSyncInfo,MediaSourceCount';
+            query.Recursive = true;
+            query.EnableTotalRecordCount = false;
+            query.ImageTypeLimit = 1;
+
+            var methodName = 'getItems';
+
+            if (!query.IncludeMedia) {
+                if (query.IncludePeople) {
+                    methodName = 'getPeople';
+
+                } else if (query.IncludeArtists) {
+                    methodName = 'getArtists';
+                }
+            }
+
+            return apiClient[methodName](apiClient.getCurrentUserId(), query);
+        }
+
+        query.UserId = apiClient.getCurrentUserId();
 
         return apiClient.getSearchHints(query);
     }
@@ -144,23 +178,19 @@
                 IncludeArtists: false,
                 IncludeItemTypes: "LiveTvProgram",
                 IsMovie: true,
-                IsKids: false,
-                IsNews: false
+                IsKids: false
 
             }, context, '.movieResults', {
 
-                    preferThumb: true,
-                    inheritThumb: false,
-                    shape: (enableScrollX() ? 'overflowPortrait' : 'portrait'),
-                    showParentTitleOrTitle: true,
-                    showTitle: false,
+                    shape: 'autooverflow',
+                    showParentTitle: true,
+                    showTitle: true,
                     centerText: true,
-                    coverImage: true,
                     overlayText: false,
                     overlayMoreButton: true,
                     showAirTime: true,
                     showAirDateTime: true,
-                    showChannelName: true
+                    lines: 3
                 });
         } else {
 
@@ -216,18 +246,15 @@
 
             }, context, '.episodeResults', {
 
-                    preferThumb: true,
-                    inheritThumb: false,
-                    shape: (enableScrollX() ? 'overflowBackdrop' : 'backdrop'),
-                    showParentTitleOrTitle: true,
-                    showTitle: false,
+                    shape: 'autooverflow',
+                    showParentTitle: true,
+                    showTitle: true,
                     centerText: true,
-                    coverImage: true,
                     overlayText: false,
                     overlayMoreButton: true,
                     showAirTime: true,
                     showAirDateTime: true,
-                    showChannelName: true
+                    lines: 3
                 });
 
         } else {
@@ -243,7 +270,6 @@
 
             }, context, '.episodeResults', {
 
-                    coverImage: true,
                     showTitle: true,
                     showParentTitle: true
                 });
@@ -262,18 +288,15 @@
 
         }, context, '.sportsResults', {
 
-                preferThumb: true,
-                inheritThumb: false,
-                shape: (enableScrollX() ? 'overflowBackdrop' : 'backdrop'),
-                showParentTitleOrTitle: true,
-                showTitle: false,
+                shape: 'autooverflow',
+                showParentTitle: true,
+                showTitle: true,
                 centerText: true,
-                coverImage: true,
                 overlayText: false,
                 overlayMoreButton: true,
                 showAirTime: true,
                 showAirDateTime: true,
-                showChannelName: true
+                lines: 3
 
             });
 
@@ -290,18 +313,14 @@
 
         }, context, '.kidsResults', {
 
-                preferThumb: true,
-                inheritThumb: false,
-                shape: (enableScrollX() ? 'overflowBackdrop' : 'backdrop'),
-                showParentTitleOrTitle: true,
-                showTitle: false,
+                shape: 'autooverflow',
+                showParentTitle: true,
+                showTitle: true,
                 centerText: true,
-                coverImage: true,
                 overlayText: false,
                 overlayMoreButton: true,
                 showAirTime: true,
-                showAirDateTime: true,
-                showChannelName: true
+                showAirDateTime: true
 
             });
 
@@ -318,18 +337,15 @@
 
         }, context, '.newsResults', {
 
-                preferThumb: true,
-                inheritThumb: false,
-                shape: (enableScrollX() ? 'overflowBackdrop' : 'backdrop'),
-                showParentTitleOrTitle: true,
-                showTitle: false,
+                shape: 'autooverflow',
+                showParentTitle: true,
+                showTitle: true,
                 centerText: true,
-                coverImage: true,
                 overlayText: false,
                 overlayMoreButton: true,
                 showAirTime: true,
                 showAirDateTime: true,
-                showChannelName: true
+                lines: 3
 
             });
 
@@ -349,18 +365,14 @@
 
         }, context, '.programResults', {
 
-                preferThumb: true,
-                inheritThumb: false,
-                shape: (enableScrollX() ? 'overflowBackdrop' : 'backdrop'),
-                showParentTitleOrTitle: true,
-                showTitle: false,
+                shape: 'autooverflow',
+                showParentTitle: true,
+                showTitle: true,
                 centerText: true,
-                coverImage: true,
                 overlayText: false,
-                overlayMoreButton: true,
                 showAirTime: true,
                 showAirDateTime: true,
-                showChannelName: true
+                lines: 3
 
             });
 
@@ -371,8 +383,7 @@
             IncludeGenres: false,
             IncludeStudios: false,
             IncludeArtists: false,
-            MediaTypes: "Video",
-            ExcludeItemTypes: "Movie,Episode"
+            IncludeItemTypes: "Video"
 
         }, context, '.videoResults', {
 
@@ -380,6 +391,27 @@
                 showTitle: true,
                 overlayText: false,
                 centerText: true
+            });
+
+        searchType(instance, apiClient, {
+            searchTerm: value,
+            IncludePeople: false,
+            IncludeMedia: true,
+            IncludeGenres: false,
+            IncludeStudios: false,
+            IncludeArtists: false,
+            IncludeItemTypes: "TvChannel"
+
+        }, context, '.channelResults', {
+
+                showParentTitle: false,
+                showTitle: true,
+                overlayText: false,
+                showCurrentProgram: true,
+                showCurrentProgramTime: true,
+                centerText: true,
+                lines: 3,
+                defaultBackground: true
             });
 
         searchType(instance, apiClient, {
@@ -392,7 +424,6 @@
 
         }, context, '.peopleResults', {
 
-                coverImage: true,
                 showTitle: true
             });
 
@@ -405,7 +436,6 @@
             IncludeArtists: true
 
         }, context, '.artistResults', {
-                coverImage: true,
                 showTitle: true
             });
 
@@ -438,12 +468,13 @@
         }, context, '.songResults', {
 
                 showParentTitle: true,
+                preferArtistTitle: true,
                 showTitle: true,
                 overlayText: false,
                 centerText: true,
                 action: 'play'
 
-        });
+            });
 
         searchType(instance, apiClient, {
             searchTerm: value,
@@ -452,11 +483,27 @@
             IncludeGenres: false,
             IncludeStudios: false,
             IncludeArtists: false,
-            MediaTypes: "Photo"
+            IncludeItemTypes: "Photo"
 
         }, context, '.photoResults', {
 
                 showParentTitle: false,
+                showTitle: true,
+                overlayText: false,
+                centerText: true
+            });
+
+        searchType(instance, apiClient, {
+            searchTerm: value,
+            IncludePeople: false,
+            IncludeMedia: true,
+            IncludeGenres: false,
+            IncludeStudios: false,
+            IncludeArtists: false,
+            IncludeItemTypes: "PhotoAlbum"
+
+        }, context, '.photoAlbumResults', {
+
                 showTitle: true,
                 overlayText: false,
                 centerText: true
@@ -486,9 +533,25 @@
             IncludeGenres: false,
             IncludeStudios: false,
             IncludeArtists: false,
-            IncludeItemTypes: "AudioBook"
+            IncludeItemTypes: "Game"
 
-        }, context, '.audioBookResults', {
+        }, context, '.gameResults', {
+
+                showTitle: true,
+                overlayText: false,
+                centerText: true
+            });
+
+        searchType(instance, apiClient, {
+            searchTerm: value,
+            IncludePeople: false,
+            IncludeMedia: true,
+            IncludeGenres: false,
+            IncludeStudios: false,
+            IncludeArtists: false,
+            IncludeItemTypes: "Playlist"
+
+        }, context, '.playlistResults', {
 
                 showTitle: true,
                 overlayText: false,
@@ -498,8 +561,7 @@
 
     function searchType(instance, apiClient, query, context, section, cardOptions) {
 
-        query.UserId = apiClient.getCurrentUserId();
-        query.Limit = enableScrollX() ? 24 : 16;
+        query.Limit = 16;
         query.ParentId = instance.options.parentId;
 
         getSearchHints(instance, apiClient, query).then(function (result) {
@@ -512,7 +574,7 @@
 
         section = context.querySelector(section);
 
-        var items = result.SearchHints;
+        var items = result.Items || result.SearchHints;
 
         var itemsContainer = section.querySelector('.itemsContainer');
 
@@ -520,19 +582,14 @@
 
             itemsContainer: itemsContainer,
             parentContainer: section,
-            shape: enableScrollX() ? 'autooverflow' : 'auto',
+            shape: 'autooverflow',
             scalable: true,
             overlayText: false,
-            centerText: true,
-            allowBottomPadding: !enableScrollX()
+            centerText: true
 
         }, cardOptions || {}));
 
         section.querySelector('.emby-scroller').scrollToBeginning(true);
-    }
-
-    function enableScrollX() {
-        return true;
     }
 
     function replaceAll(originalString, strReplace, strWith) {
@@ -543,11 +600,6 @@
     function embed(elem, instance, options) {
 
         require(['text!./searchresults.template.html'], function (template) {
-
-            if (!enableScrollX()) {
-                template = replaceAll(template, 'data-horizontal="true"', 'data-horizontal="false"');
-                template = replaceAll(template, 'itemsContainer scrollSlider', 'itemsContainer scrollSlider vertical-wrap');
-            }
 
             var html = globalize.translateDocument(template, 'sharedcomponents');
 

@@ -1,9 +1,9 @@
-define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusManager', 'indicators', 'globalize', 'layoutManager', 'apphost', 'dom', 'browser', 'itemShortcuts', 'css!./card', 'paper-icon-button-light', 'programStyles'],
-    function (datetime, imageLoader, connectionManager, itemHelper, focusManager, indicators, globalize, layoutManager, appHost, dom, browser, itemShortcuts) {
+define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusManager', 'indicators', 'globalize', 'layoutManager', 'apphost', 'dom', 'browser', 'playbackManager', 'itemShortcuts', 'css!./card', 'paper-icon-button-light', 'programStyles'],
+    function (datetime, imageLoader, connectionManager, itemHelper, focusManager, indicators, globalize, layoutManager, appHost, dom, browser, playbackManager, itemShortcuts) {
         'use strict';
 
         var devicePixelRatio = window.devicePixelRatio || 1;
-        var enableFocusTransfrom = !browser.slow && !browser.xboxOne && !browser.edgeUwp;
+        var enableFocusTransfrom = !browser.slow && !browser.edge;
 
         function getCardsHtml(items, options) {
 
@@ -23,22 +23,23 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             switch (shape) {
 
                 case 'portrait':
+                case 'square':
                     if (layoutManager.tv) {
                         return 100 / 16.66666667;
                     }
-                    if (screenWidth >= 2200) {
+                    if (screenWidth >= 2100) {
                         return 100 / 10;
                     }
-                    if (screenWidth >= 1920) {
+                    if (screenWidth >= 1760) {
                         return 100 / 11.1111111111;
                     }
                     if (screenWidth >= 1600) {
                         return 100 / 12.5;
                     }
-                    if (screenWidth >= 1400) {
+                    if (screenWidth >= 1320) {
                         return 100 / 14.28571428571;
                     }
-                    if (screenWidth >= 1200) {
+                    if (screenWidth >= 1120) {
                         return 100 / 16.66666667;
                     }
                     if (screenWidth >= 800) {
@@ -51,30 +52,21 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                         return 100 / 33.33333333;
                     }
                     return 100 / 33.33333333;
-                case 'square':
+                case 'fourthree':
                     if (layoutManager.tv) {
-                        return 100 / 16.66666667;
+                        return 100 / 20;
                     }
-                    if (screenWidth >= 2200) {
-                        return 100 / 10;
-                    }
-                    if (screenWidth >= 1920) {
-                        return 100 / 11.1111111111;
-                    }
-                    if (screenWidth >= 1600) {
-                        return 100 / 12.5;
-                    }
-                    if (screenWidth >= 1400) {
+                    if (screenWidth >= 2100) {
                         return 100 / 14.28571428571;
                     }
-                    if (screenWidth >= 1200) {
+                    if (screenWidth >= 1600) {
                         return 100 / 16.66666667;
                     }
-                    if (screenWidth >= 800) {
-                        return 5;
+                    if (screenWidth >= 1000) {
+                        return 100 / 20;
                     }
                     if (screenWidth >= 700) {
-                        return 4;
+                        return 100 / 25;
                     }
                     if (screenWidth >= 500) {
                         return 100 / 33.33333333;
@@ -95,10 +87,10 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     if (layoutManager.tv) {
                         return 100 / 25;
                     }
-                    if (screenWidth >= 2500) {
-                        return 6;
+                    if (screenWidth >= 1920) {
+                        return 100 / 16.66666667;
                     }
-                    if (screenWidth >= 1600) {
+                    if (screenWidth >= 1520) {
                         return 5;
                     }
                     if (screenWidth >= 1200) {
@@ -131,6 +123,29 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                         return 100 / 33.33333333;
                     }
                     return 2;
+                case 'overflowFourThree':
+                    if (layoutManager.tv) {
+                        return 100 / 18.8;
+                    }
+                    if (screenWidth >= 2100) {
+                        return 100 / 13.3;
+                    }
+                    if (screenWidth >= 1600) {
+                        return 100 / 15.5;
+                    }
+                    if (screenWidth >= 1200) {
+                        return 100 / 18.4;
+                    }
+                    if (isOrientationLandscape) {
+                        if (screenWidth >= 770) {
+                            return 100 / 23.3;
+                        }
+                        return 100 / 31.2;
+                    }
+                    if (screenWidth >= 504) {
+                        return 100 / 31.2;
+                    }
+                    return 100 / 40;
                 case 'overflowSmallBackdrop':
                     if (layoutManager.tv) {
                         return 100 / 18.9;
@@ -144,58 +159,38 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                         if (screenWidth >= 540) {
                             return 100 / 30;
                         }
-                        return 100 / 47;
+                        return 100 / 72;
                     }
                     break;
+                case 'overflowSquare':
                 case 'overflowPortrait':
 
                     if (layoutManager.tv) {
                         return 100 / 15.5;
                     }
-                    if (isOrientationLandscape) {
-                        if (screenWidth >= 1700) {
-                            return 100 / 11.6;
-                        }
-                        return 100 / 15.5;
-                    } else {
-                        if (screenWidth >= 1400) {
-                            return 100 / 15;
-                        }
-                        if (screenWidth >= 1200) {
-                            return 100 / 18;
-                        }
-                        if (screenWidth >= 760) {
-                            return 100 / 23;
-                        }
-                        if (screenWidth >= 400) {
-                            return 100 / 31.5;
-                        }
-                        return 100 / 42;
+                    if (screenWidth >= 2100) {
+                        return 100 / 9.3;
                     }
-                    break;
-                case 'overflowSquare':
-                    if (layoutManager.tv) {
+                    if (screenWidth >= 1920) {
+                        return 100 / 10.3;
+                    }
+                    if (screenWidth >= 1600) {
+                        return 100 / 11.6;
+                    }
+                    if (screenWidth >= 1400) {
+                        return 100 / 13.3;
+                    }
+                    if (screenWidth >= 1200) {
                         return 100 / 15.5;
                     }
+                    if (screenWidth >= 800) {
+                        return 100 / 18.4;
+                    }
+
                     if (isOrientationLandscape) {
-                        if (screenWidth >= 1700) {
-                            return 100 / 11.6;
-                        }
-                        return 100 / 15.5;
+                        return 100 / 23.3;
                     } else {
-                        if (screenWidth >= 1400) {
-                            return 100 / 15;
-                        }
-                        if (screenWidth >= 1200) {
-                            return 100 / 18;
-                        }
-                        if (screenWidth >= 760) {
-                            return 100 / 23;
-                        }
-                        if (screenWidth >= 540) {
-                            return 100 / 31.5;
-                        }
-                        return 100 / 42;
+                        return 100 / 40;
                     }
                     break;
                 case 'overflowBackdrop':
@@ -269,8 +264,10 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     if (primaryImageAspectRatio >= 3) {
                         options.shape = 'banner';
                         options.coverImage = true;
-                    } else if (primaryImageAspectRatio >= 1.33) {
+                    } else if (primaryImageAspectRatio >= 1.4) {
                         options.shape = requestedShape === 'autooverflow' ? 'overflowBackdrop' : 'backdrop';
+                    } else if (primaryImageAspectRatio > 1.2) {
+                        options.shape = requestedShape === 'autooverflow' ? 'overflowFourThree' : 'fourThree';
                     } else if (primaryImageAspectRatio > 0.71) {
                         options.shape = requestedShape === 'autooverflow' ? 'overflowSquare' : 'square';
                     } else {
@@ -344,60 +341,6 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     apiClient = connectionManager.getApiClient(lastServerId);
                 }
 
-                if (options.indexBy) {
-                    var newIndexValue = '';
-
-                    if (options.indexBy === 'PremiereDate') {
-                        if (item.PremiereDate) {
-                            try {
-
-                                newIndexValue = datetime.toLocaleDateString(datetime.parseISO8601Date(item.PremiereDate), { weekday: 'long', month: 'long', day: 'numeric' });
-
-                            } catch (err) {
-                            }
-                        }
-                    }
-
-                    else if (options.indexBy === 'ProductionYear') {
-                        newIndexValue = item.ProductionYear;
-                    }
-
-                    else if (options.indexBy === 'CommunityRating') {
-                        newIndexValue = item.CommunityRating ? (Math.floor(item.CommunityRating) + (item.CommunityRating % 1 >= 0.5 ? 0.5 : 0)) + '+' : null;
-                    }
-
-                    if (newIndexValue !== currentIndexValue) {
-
-                        if (hasOpenRow) {
-                            html += '</div>';
-                            hasOpenRow = false;
-                            itemsInRow = 0;
-                        }
-
-                        if (hasOpenSection) {
-
-                            html += '</div>';
-
-                            if (isVertical) {
-                                html += '</div>';
-                            }
-                            hasOpenSection = false;
-                        }
-
-                        if (isVertical) {
-                            html += '<div class="verticalSection">';
-                        } else {
-                            html += '<div class="horizontalSection">';
-                        }
-                        html += '<' + sectionTitleTagName + ' class="sectionTitle">' + newIndexValue + '</' + sectionTitleTagName + '>';
-                        if (isVertical) {
-                            html += '<div class="itemsContainer vertical-wrap">';
-                        }
-                        currentIndexValue = newIndexValue;
-                        hasOpenSection = true;
-                    }
-                }
-
                 if (options.rows && itemsInRow === 0) {
 
                     if (hasOpenRow) {
@@ -442,71 +385,6 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 }
             }
 
-            if (options.leadingButtons) {
-
-                for (i = 0, length = options.leadingButtons.length; i < length; i++) {
-
-                    html = getExtraButtonHtml(options, options.leadingButtons[i], cardFooterHtml) + html;
-                }
-
-            }
-
-            if (options.trailingButtons) {
-
-                for (i = 0, length = options.trailingButtons.length; i < length; i++) {
-
-                    html += getExtraButtonHtml(options, options.trailingButtons[i], cardFooterHtml);
-                }
-
-            }
-
-            return html;
-        }
-
-        function getExtraButtonHtml(options, buttonInfo, cardFooterHtml) {
-
-            var tagOpen = buttonInfo.routeUrl ?
-                '<a is="emby-linkbutton" href="' + buttonInfo.routeUrl + '" data-focusscale="false" data-ripple="false"' :
-                '<button';
-
-            var html = tagOpen + ' data-textcardid="' + buttonInfo.id + '" class="textButtonCard card ' + options.shape + 'Card ' + options.shape + 'Card-textCard itemAction card-withuserdata">';
-
-            var cardBoxClass = 'cardBox';
-
-            if (enableFocusTransfrom) {
-                cardBoxClass += ' cardBox-focustransform';
-            }
-
-            if (cardFooterHtml) {
-                cardBoxClass += ' cardBox-bottompadded';
-            }
-
-            var cardScalableClass = 'cardScalable card-focuscontent';
-            cardScalableClass += ' card-focuscontent';
-
-            if (!enableFocusTransfrom) {
-                cardScalableClass += ' card-focuscontent-large';
-            }
-
-            html += '<div class="' + cardBoxClass + '"><div class="' + cardScalableClass + '"><div class="' + options.shape + 'Card-textCardPadder"></div>';
-
-            var icon = '';
-
-            if (buttonInfo.icon) {
-                icon = '<i class="cardImageIcon cardImageIcon-small md-icon">' + buttonInfo.icon + '</i>';
-            }
-
-            html += '<div class="cardContent cardContent-shadow cardImageContainer coveredImage textCardImageContainer flex-direction-column">' + icon + '<div class="cardText cardDefaultText">' + buttonInfo.name + '</div></div></div>';
-
-            html += cardFooterHtml;
-            html += '</div>';
-
-            if (buttonInfo.routeUrl) {
-                html += '</a>';
-            } else {
-                html += '</button>';
-            }
-
             return html;
         }
 
@@ -522,6 +400,9 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 }
                 if (shape.indexOf('square') !== -1) {
                     return 1;
+                }
+                if (shape.indexOf('fourthree') !== -1) {
+                    return (4 / 3);
                 }
                 if (shape.indexOf('banner') !== -1) {
                     return (1000 / 185);
@@ -542,37 +423,41 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             var imgUrl = null;
             var coverImage = false;
             var uiAspect = null;
+            // .24 as opposed to .2 looks nice for nintendo 64
+            var coverImageTolerance = 0.28;
 
-            if (options.preferThumb && item.ImageTags && item.ImageTags.Thumb) {
+            var imageTags = item.ImageTags;
+
+            if (options.preferThumb && imageTags && imageTags.Thumb) {
 
                 imgUrl = apiClient.getScaledImageUrl(item.Id, {
                     type: "Thumb",
                     maxWidth: width,
-                    tag: item.ImageTags.Thumb
+                    tag: imageTags.Thumb
                 });
 
-            } else if ((options.preferBanner || shape === 'banner') && item.ImageTags && item.ImageTags.Banner) {
+            } else if ((options.preferBanner || shape === 'banner') && imageTags && imageTags.Banner) {
 
                 imgUrl = apiClient.getScaledImageUrl(item.Id, {
                     type: "Banner",
                     maxWidth: width,
-                    tag: item.ImageTags.Banner
+                    tag: imageTags.Banner
                 });
 
-            } else if (options.preferDisc && item.ImageTags && item.ImageTags.Disc) {
+            } else if (options.preferDisc && imageTags && imageTags.Disc) {
 
                 imgUrl = apiClient.getScaledImageUrl(item.Id, {
                     type: "Disc",
                     maxWidth: width,
-                    tag: item.ImageTags.Disc
+                    tag: imageTags.Disc
                 });
 
-            } else if (options.preferLogo && item.ImageTags && item.ImageTags.Logo) {
+            } else if (options.preferLogo && imageTags && imageTags.Logo) {
 
                 imgUrl = apiClient.getScaledImageUrl(item.Id, {
                     type: "Logo",
                     maxWidth: width,
-                    tag: item.ImageTags.Logo
+                    tag: imageTags.Logo
                 });
 
             } else if (options.preferLogo && item.ParentLogoImageTag && item.ParentLogoItemId) {
@@ -617,7 +502,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     tag: item.ParentBackdropImageTags[0]
                 });
 
-            } else if (item.ImageTags && item.ImageTags.Primary) {
+            } else if (imageTags && imageTags.Primary) {
 
                 height = width && primaryImageAspectRatio ? Math.round(width / primaryImageAspectRatio) : null;
 
@@ -625,7 +510,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     type: "Primary",
                     maxHeight: height,
                     maxWidth: width,
-                    tag: item.ImageTags.Primary
+                    tag: imageTags.Primary
                 });
 
                 if (options.preferThumb && options.showTitle !== false) {
@@ -635,7 +520,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 if (primaryImageAspectRatio) {
                     uiAspect = getDesiredAspect(shape);
                     if (uiAspect) {
-                        coverImage = (Math.abs(primaryImageAspectRatio - uiAspect) / uiAspect) <= 0.2;
+                        coverImage = (Math.abs(primaryImageAspectRatio - uiAspect) / uiAspect) <= coverImageTolerance;
                     }
                 }
 
@@ -657,7 +542,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 if (primaryImageAspectRatio) {
                     uiAspect = getDesiredAspect(shape);
                     if (uiAspect) {
-                        coverImage = (Math.abs(primaryImageAspectRatio - uiAspect) / uiAspect) <= 0.2;
+                        coverImage = (Math.abs(primaryImageAspectRatio - uiAspect) / uiAspect) <= coverImageTolerance;
                     }
                 }
             }
@@ -691,16 +576,16 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 if (primaryImageAspectRatio) {
                     uiAspect = getDesiredAspect(shape);
                     if (uiAspect) {
-                        coverImage = (Math.abs(primaryImageAspectRatio - uiAspect) / uiAspect) <= 0.2;
+                        coverImage = (Math.abs(primaryImageAspectRatio - uiAspect) / uiAspect) <= coverImageTolerance;
                     }
                 }
             }
-            else if (item.Type === 'Season' && item.ImageTags && item.ImageTags.Thumb) {
+            else if (item.Type === 'Season' && imageTags && imageTags.Thumb) {
 
                 imgUrl = apiClient.getScaledImageUrl(item.Id, {
                     type: "Thumb",
                     maxWidth: width,
-                    tag: item.ImageTags.Thumb
+                    tag: imageTags.Thumb
                 });
 
             }
@@ -712,12 +597,12 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     tag: item.BackdropImageTags[0]
                 });
 
-            } else if (item.ImageTags && item.ImageTags.Thumb) {
+            } else if (imageTags && imageTags.Thumb) {
 
                 imgUrl = apiClient.getScaledImageUrl(item.Id, {
                     type: "Thumb",
                     maxWidth: width,
-                    tag: item.ImageTags.Thumb
+                    tag: imageTags.Thumb
                 });
 
             } else if (item.SeriesThumbImageTag && options.inheritThumb !== false) {
@@ -781,10 +666,11 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
             var valid = 0;
             var i, length;
+            var currentCssClass = cssClass;
 
             for (i = 0, length = lines.length; i < length; i++) {
 
-                var currentCssClass = cssClass;
+                currentCssClass = cssClass;
                 var text = lines[i];
 
                 if (valid > 0 && isOuterFooter) {
@@ -814,7 +700,13 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 length = maxLines || Math.min(lines.length, maxLines || lines.length);
 
                 while (valid < length) {
-                    html += "<div class='" + cssClass + "'>&nbsp;</div>";
+
+                    currentCssClass = cssClass;
+                    if (valid > 0 && isOuterFooter) {
+                        currentCssClass += ' cardText-secondary';
+                    }
+
+                    html += "<div class='" + currentCssClass + "'>&nbsp;</div>";
                     valid++;
                 }
             }
@@ -822,8 +714,9 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             return html;
         }
 
-        function isUsingLiveTvNaming(item) {
-            return item.Type === 'Program' || item.Type === 'Timer' || item.Type === 'Recording';
+        function isUsingLiveTvNaming(itemType) {
+
+            return itemType === 'Program' || itemType === 'Timer' || itemType === 'Recording';
         }
 
         function getAirTimeText(item, showAirDateTime, showAirEndTime) {
@@ -842,7 +735,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
                     if (item.EndDate && showAirEndTime) {
                         date = datetime.parseISO8601Date(item.EndDate);
-                        airTimeText += ' - ' + datetime.getDisplayTime(date);
+                        airTimeText += ' &ndash; ' + datetime.getDisplayTime(date);
                     }
                 }
                 catch (e) {
@@ -855,6 +748,8 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
         function getCardFooterText(item, apiClient, options, showTitle, forceName, overlayText, imgUrl, footerClass, progressHtml, logoUrl, isOuterFooter) {
 
+            var itemType = item.Type;
+
             var html = '';
 
             if (logoUrl) {
@@ -863,42 +758,41 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
             var showOtherText = isOuterFooter ? !overlayText : overlayText;
 
-            if (isOuterFooter && options.cardLayout && !layoutManager.tv) {
+            if (isOuterFooter && options.cardLayout && layoutManager.mobile && options.cardFooterAside !== false) {
 
-                if (options.cardFooterAside !== 'none') {
-                    var moreIcon = appHost.moreIcon === 'dots-horiz' ? '&#xE5D3;' : '&#xE5D4;';
-                    html += '<button is="paper-icon-button-light" class="itemAction btnCardOptions cardText-secondary" data-action="menu"><i class="md-icon">' + moreIcon + '</i></button>';
-                }
+                html += '<button is="paper-icon-button-light" class="itemAction btnCardOptions cardText-secondary" data-action="menu"><i class="md-icon">&#xE5D3;</i></button>';
             }
 
             var cssClass = options.centerText ? "cardText cardTextCentered" : "cardText";
 
             var lines = [];
-            var parentTitleUnderneath = item.Type === 'MusicAlbum' || item.Type === 'Audio' || item.Type === 'MusicVideo';
+            var parentTitleUnderneath = itemType === 'MusicAlbum' || itemType === 'Audio' || itemType === 'MusicVideo' || itemType === 'Game';
             var titleAdded;
+
+            var serverId = item.ServerId || options.serverId;
 
             if (showOtherText) {
                 if ((options.showParentTitle || options.showParentTitleOrTitle) && !parentTitleUnderneath) {
 
-                    if (isOuterFooter && item.Type === 'Episode' && item.SeriesName) {
+                    if (isOuterFooter && itemType === 'Episode' && item.SeriesName) {
 
                         if (item.SeriesId) {
                             lines.push(getTextActionButton({
                                 Id: item.SeriesId,
-                                ServerId: item.ServerId,
+                                ServerId: serverId,
                                 Name: item.SeriesName,
                                 Type: 'Series',
                                 IsFolder: true
                             }));
                         } else {
-                            lines.push(item.SeriesName);
+                            lines.push(dom.htmlEncode(item.SeriesName));
                         }
                     }
                     else {
 
-                        if (isUsingLiveTvNaming(item)) {
+                        if (isUsingLiveTvNaming(itemType)) {
 
-                            lines.push(item.Name);
+                            lines.push(dom.htmlEncode(item.Name));
 
                             if (!item.EpisodeTitle) {
                                 titleAdded = true;
@@ -908,7 +802,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                             var parentTitle = item.SeriesName || item.Series || item.Album || item.AlbumArtist || item.GameSystem || "";
 
                             if (parentTitle || showTitle) {
-                                lines.push(parentTitle);
+                                lines.push(dom.htmlEncode(parentTitle));
                             }
                         }
                     }
@@ -926,26 +820,31 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     includeParentInfo: options.includeParentInfoInTitle
                 });
 
-                lines.push(name);
+                lines.push(dom.htmlEncode(name));
             }
 
             if (showOtherText) {
                 if (options.showParentTitle && parentTitleUnderneath) {
 
-                    if (isOuterFooter && item.AlbumArtists && item.AlbumArtists.length) {
+                    if (isOuterFooter && options.preferArtistTitle && item.ArtistItems && item.ArtistItems.length) {
+                        item.ArtistItems[0].Type = 'MusicArtist';
+                        item.ArtistItems[0].IsFolder = true;
+                        lines.push(getTextActionButton(item.ArtistItems[0], null, serverId));
+                    } else if (isOuterFooter && item.AlbumArtists && item.AlbumArtists.length) {
                         item.AlbumArtists[0].Type = 'MusicArtist';
                         item.AlbumArtists[0].IsFolder = true;
-                        lines.push(getTextActionButton(item.AlbumArtists[0], null, item.ServerId));
+                        lines.push(getTextActionButton(item.AlbumArtists[0], null, serverId));
+                    } else if (isOuterFooter && item.GameSystem && item.GameSystemId) {
+                        lines.push(getTextActionButton({
+                            Id: item.GameSystemId,
+                            ServerId: serverId,
+                            Name: item.GameSystem,
+                            Type: 'GameSystem',
+                            IsFolder: true
+                        }));
                     } else {
-                        lines.push(isUsingLiveTvNaming(item) ? item.Name : (item.SeriesName || item.Series || item.Album || item.AlbumArtist || item.GameSystem || ""));
+                        lines.push(dom.htmlEncode(isUsingLiveTvNaming(itemType) ? item.Name : (item.SeriesName || item.Series || item.Album || item.AlbumArtist || item.GameSystem || "")));
                     }
-                }
-
-                if (options.showItemCounts) {
-
-                    var itemCountHtml = getItemCountsHtml(options, item);
-
-                    lines.push(itemCountHtml);
                 }
 
                 if (options.textLines) {
@@ -953,19 +852,6 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     for (var i = 0, length = additionalLines.length; i < length; i++) {
                         lines.push(additionalLines[i]);
                     }
-                }
-
-                if (options.showSongCount) {
-
-                    var songLine = '';
-
-                    if (item.SongCount) {
-                        songLine = item.SongCount === 1 ?
-                            globalize.translate('sharedcomponents#ValueOneSong') :
-                            globalize.translate('sharedcomponents#ValueSongCount', item.SongCount);
-                    }
-
-                    lines.push(songLine);
                 }
 
                 if (options.showPremiereDate) {
@@ -984,17 +870,19 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     }
                 }
 
-                if (options.showYear || options.showSeriesYear) {
+                if (options.showYear) {
 
-                    if (item.Type === 'Series') {
+                    if (itemType === 'Series') {
                         if (item.Status === "Continuing") {
 
                             lines.push(globalize.translate('sharedcomponents#SeriesYearToPresent', item.ProductionYear || ''));
 
                         } else {
 
-                            if (item.EndDate && item.ProductionYear) {
-                                lines.push(item.ProductionYear + ' - ' + datetime.parseISO8601Date(item.EndDate).getFullYear());
+                            var endYear = item.EndDate ? datetime.parseISO8601Date(item.EndDate).getFullYear() : null;
+
+                            if (endYear && item.ProductionYear && endYear !== item.ProductionYear) {
+                                lines.push(item.ProductionYear + ' &ndash; ' + endYear);
                             } else {
                                 lines.push(item.ProductionYear || '');
                             }
@@ -1026,7 +914,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                         lines.push(getTextActionButton({
 
                             Id: item.ChannelId,
-                            ServerId: item.ServerId,
+                            ServerId: serverId,
                             Name: item.ChannelName,
                             Type: 'TvChannel',
                             MediaType: item.MediaType,
@@ -1038,7 +926,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     }
                 }
 
-                if (options.showCurrentProgram && item.Type === 'TvChannel') {
+                if (options.showCurrentProgram && itemType === 'TvChannel') {
 
                     if (item.CurrentProgram) {
                         lines.push(item.CurrentProgram.Name);
@@ -1047,7 +935,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                     }
                 }
 
-                if (options.showCurrentProgramTime && item.Type === 'TvChannel') {
+                if (options.showCurrentProgramTime && itemType === 'TvChannel') {
 
                     if (item.CurrentProgram) {
                         lines.push(getAirTimeText(item.CurrentProgram, false, true) || '');
@@ -1076,10 +964,10 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
                 if (options.showPersonRoleOrType) {
                     if (item.Role) {
-                        lines.push('as ' + item.Role);
+                        lines.push(globalize.translate('sharedcomponents#ActorAsRole', item.Role));
                     }
-                    else if (item.Type) {
-                        lines.push(globalize.translate('sharedcomponents#' + item.Type));
+                    else if (itemType) {
+                        lines.push(globalize.translate('sharedcomponents#' + itemType));
                     } else {
                         lines.push('');
                     }
@@ -1090,7 +978,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 lines = [];
             }
 
-            var addRightTextMargin = isOuterFooter && options.cardLayout && !options.centerText && options.cardFooterAside !== 'none' && !layoutManager.tv;
+            var addRightTextMargin = isOuterFooter && options.cardLayout && !options.centerText && options.cardFooterAside !== 'none' && layoutManager.mobile;
 
             html += getCardTextLines(lines, cssClass, !options.overlayText, isOuterFooter, options.cardLayout, addRightTextMargin, options.lines);
 
@@ -1118,124 +1006,14 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             }
 
             if (layoutManager.tv) {
-                return text;
+                return dom.htmlEncode(text);
             }
 
             var html = '<button ' + itemShortcuts.getShortcutAttributesHtml(item, serverId) + ' type="button" class="itemAction textActionButton" data-action="link">';
-            html += text;
+            html += dom.htmlEncode(text);
             html += '</button>';
 
             return html;
-        }
-
-        function getItemCountsHtml(options, item) {
-
-            var counts = [];
-
-            var childText;
-
-            if (item.Type === 'Playlist') {
-
-                childText = '';
-
-                if (item.RunTimeTicks) {
-
-                    var minutes = item.RunTimeTicks / 600000000;
-
-                    minutes = minutes || 1;
-
-                    childText += globalize.translate('sharedcomponents#ValueMinutes', Math.round(minutes));
-
-                } else {
-                    childText += globalize.translate('sharedcomponents#ValueMinutes', 0);
-                }
-
-                counts.push(childText);
-
-            }
-            else if (item.Type === 'Genre' || item.Type === 'Studio') {
-
-                if (item.MovieCount) {
-
-                    childText = item.MovieCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneMovie') :
-                        globalize.translate('sharedcomponents#ValueMovieCount', item.MovieCount);
-
-                    counts.push(childText);
-                }
-
-                if (item.SeriesCount) {
-
-                    childText = item.SeriesCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneSeries') :
-                        globalize.translate('sharedcomponents#ValueSeriesCount', item.SeriesCount);
-
-                    counts.push(childText);
-                }
-                if (item.EpisodeCount) {
-
-                    childText = item.EpisodeCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneEpisode') :
-                        globalize.translate('sharedcomponents#ValueEpisodeCount', item.EpisodeCount);
-
-                    counts.push(childText);
-                }
-                if (item.GameCount) {
-
-                    childText = item.GameCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneGame') :
-                        globalize.translate('sharedcomponents#ValueGameCount', item.GameCount);
-
-                    counts.push(childText);
-                }
-
-            } else if (item.Type === 'GameGenre') {
-
-                if (item.GameCount) {
-
-                    childText = item.GameCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneGame') :
-                        globalize.translate('sharedcomponents#ValueGameCount', item.GameCount);
-
-                    counts.push(childText);
-                }
-            } else if (item.Type === 'MusicGenre' || options.context === "MusicArtist") {
-
-                if (item.AlbumCount) {
-
-                    childText = item.AlbumCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneAlbum') :
-                        globalize.translate('sharedcomponents#ValueAlbumCount', item.AlbumCount);
-
-                    counts.push(childText);
-                }
-                if (item.SongCount) {
-
-                    childText = item.SongCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneSong') :
-                        globalize.translate('sharedcomponents#ValueSongCount', item.SongCount);
-
-                    counts.push(childText);
-                }
-                if (item.MusicVideoCount) {
-
-                    childText = item.MusicVideoCount === 1 ?
-                        globalize.translate('sharedcomponents#ValueOneMusicVideo') :
-                        globalize.translate('sharedcomponents#ValueMusicVideoCount', item.MusicVideoCount);
-
-                    counts.push(childText);
-                }
-
-            } else if (item.Type === 'Series') {
-
-                childText = item.RecursiveItemCount === 1 ?
-                    globalize.translate('sharedcomponents#ValueOneEpisode') :
-                    globalize.translate('sharedcomponents#ValueEpisodeCount', item.RecursiveItemCount);
-
-                counts.push(childText);
-            }
-
-            return counts.join(', ');
         }
 
         function getProgramIndicators(item) {
@@ -1281,6 +1059,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
         function buildCard(index, item, apiClient, options) {
 
+            var itemType = item.Type;
             var action = options.action || 'link';
 
             if (action === 'play' && item.IsFolder) {
@@ -1327,7 +1106,15 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 className += " " + options.cardClass;
             }
 
-            if (!enableFocusTransfrom || !layoutManager.tv) {
+            var isLayoutTv = layoutManager.tv;
+            var isLayoutDesktop = layoutManager.desktop;
+            var isLayoutMobile = layoutManager.mobile;
+
+            if (isLayoutDesktop) {
+                className += ' card-hoverable';
+            }
+
+            if (!enableFocusTransfrom || !isLayoutTv) {
                 className += ' card-nofocustransform';
             }
 
@@ -1336,7 +1123,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
             var forceName = imgInfo.forceName;
 
-            var showTitle = options.showTitle === 'auto' ? true : (options.showTitle || item.Type === 'PhotoAlbum' || item.Type === 'Folder');
+            var showTitle = options.showTitle === 'auto' ? true : (options.showTitle || itemType === 'PhotoAlbum' || itemType === 'Folder');
             var overlayText = options.overlayText;
 
             if (forceName && !options.cardLayout) {
@@ -1352,21 +1139,26 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             if (coveredImage) {
                 cardImageContainerClass += ' coveredImage';
 
-                if (item.MediaType === 'Photo' || item.Type === 'PhotoAlbum' || item.Type === 'Folder' || item.ProgramInfo || item.Type === 'Program' || item.Type === 'Recording') {
+                if (item.MediaType === 'Photo' || itemType === 'PhotoAlbum' || itemType === 'Folder' || itemType === 'Program' || itemType === 'Recording' || itemType === 'TvChannel') {
                     cardImageContainerClass += ' coveredImage-noScale';
                 }
             }
 
-            if (!imgUrl) {
+            if (options.defaultBackground) {
+                cardImageContainerClass += ' defaultCardBackground defaultCardBackground0';
+            }
+            else if (!imgUrl) {
                 cardImageContainerClass += ' ' + getDefaultBackgroundClass(item.Name);
             }
 
             var cardBoxClass = options.cardLayout ? 'cardBox visualCardBox' : 'cardBox';
 
-            if (layoutManager.tv) {
+            if (isLayoutTv) {
 
                 if (enableFocusTransfrom) {
-                    cardBoxClass += ' cardBox-focustransform';
+                    cardBoxClass += ' cardBox-focustransform cardBox-withfocuscontent';
+                } else {
+                    cardBoxClass += ' cardBox-withfocuscontent-large';
                 }
 
                 if (options.cardLayout) {
@@ -1419,11 +1211,6 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 progressHtml = '';
             }
 
-            var mediaSourceCount = item.MediaSourceCount || 1;
-            if (mediaSourceCount > 1) {
-                innerCardFooter += '<div class="mediaSourceIndicator">' + mediaSourceCount + '</div>';
-            }
-
             var outerCardFooter = '';
             if (!overlayText && !footerOverlayed) {
                 footerCssClass = options.cardLayout ? 'cardFooter' : 'cardFooter cardFooter-transparent';
@@ -1444,35 +1231,28 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             }
 
             var overlayButtons = '';
-            if (!layoutManager.tv) {
+            if (isLayoutMobile) {
 
-                var overlayPlayButton = options.overlayPlayButton;
+                //var overlayPlayButton = options.overlayPlayButton;
 
-                if (overlayPlayButton == null && !options.overlayMoreButton && !options.overlayInfoButton && !options.cardLayout) {
-                    overlayPlayButton = item.MediaType === 'Video';
-                }
+                //if (overlayPlayButton == null && !options.overlayMoreButton && !options.overlayInfoButton && !options.cardLayout) {
+                //    overlayPlayButton = item.MediaType === 'Video';
+                //}
 
-                var btnCssClass = 'cardOverlayButton itemAction';
+                var btnCssClass = 'cardOverlayButton cardOverlayButton-br itemAction';
 
                 if (options.centerPlayButton) {
-                    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + ' cardOverlayButton-centered" data-action="play" onclick="return false;"><i class="md-icon">&#xE037;</i></button>';
+                    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + ' cardOverlayButton-centered" data-action="play"><i class="md-icon cardOverlayButtonIcon">&#xE037;</i></button>';
                 }
 
-                if (overlayPlayButton && !item.IsPlaceHolder && (item.LocationType !== 'Virtual' || !item.MediaType || item.Type === 'Program') && item.Type !== 'Person') {
-                    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + '" data-action="play" onclick="return false;"><i class="md-icon">&#xE037;</i></button>';
-                }
+                //if (overlayPlayButton && !item.IsPlaceHolder && (item.LocationType !== 'Virtual' || !item.MediaType || itemType === 'Program') && itemType !== 'Person') {
+                //    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + '" data-action="play"><i class="md-icon cardOverlayButtonIcon">&#xE037;</i></button>';
+                //}
 
-                if (options.overlayMoreButton) {
+                //if (options.overlayMoreButton) {
 
-                    var moreIcon = appHost.moreIcon === 'dots-horiz' ? '&#xE5D3;' : '&#xE5D4;';
-
-                    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + '" data-action="menu" onclick="return false;"><i class="md-icon">' + moreIcon + '</i></button>';
-                }
-
-                if (options.overlayInfoButton) {
-
-                    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + ' cardOverlayButton-texticon" data-action="link" onclick="return false;"><i class="cardOverlayButton-texticon-icon">i</i></button>';
-                }
+                //    overlayButtons += '<button is="paper-icon-button-light" class="' + btnCssClass + '" data-action="menu"><i class="md-icon cardOverlayButtonIcon">&#xE5D3;</i></button>';
+                //}
             }
 
             if (options.showChildCountIndicator && item.ChildCount) {
@@ -1490,13 +1270,18 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 cardContentClass += ' cardContent-shadow';
             }
 
-            if (layoutManager.tv) {
+            if (isLayoutTv) {
 
                 // Don't use the IMG tag with safari because it puts a white border around it
                 cardImageContainerOpen = imgUrl ? ('<div class="' + cardImageContainerClass + ' ' + cardContentClass + ' lazy" data-src="' + imgUrl + '">') : ('<div class="' + cardImageContainerClass + ' ' + cardContentClass + '">');
 
                 cardImageContainerClose = '</div>';
             } else {
+
+                if (isLayoutMobile) {
+                    className += ' card-touchzoom';
+                }
+
                 // Don't use the IMG tag with safari because it puts a white border around it
                 cardImageContainerOpen = imgUrl ? ('<button data-action="' + action + '" class="cardContent-button ' + cardImageContainerClass + ' ' + cardContentClass + ' itemAction lazy" data-src="' + imgUrl + '">') : ('<button data-action="' + action + '" class="cardContent-button ' + cardImageContainerClass + ' ' + cardContentClass + ' itemAction">');
 
@@ -1505,7 +1290,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
 
             var cardScalableClass = 'cardScalable';
 
-            if (layoutManager.tv && !options.cardLayout) {
+            if (isLayoutTv && !options.cardLayout) {
 
                 cardScalableClass += ' card-focuscontent';
 
@@ -1518,6 +1303,8 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             cardBoxClose = '</div>';
             cardScalableClose = '</div>';
 
+            cardImageContainerOpen += indicators.getTypeIndicator(item);
+
             var indicatorsHtml = '';
 
             if (options.missingIndicator !== false) {
@@ -1527,19 +1314,9 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             indicatorsHtml += indicators.getSyncIndicator(item);
             indicatorsHtml += indicators.getTimerIndicator(item);
 
-            indicatorsHtml += indicators.getTypeIndicator(item);
+            indicatorsHtml += indicators.getPlayedIndicatorHtml(item);
 
-            if (options.showGroupCount) {
-
-                indicatorsHtml += indicators.getChildCountIndicatorHtml(item, {
-                    minCount: 1
-                });
-            }
-            else {
-                indicatorsHtml += indicators.getPlayedIndicatorHtml(item);
-            }
-
-            if (item.Type === 'CollectionFolder' || item.CollectionType) {
+            if (itemType === 'CollectionFolder' || item.CollectionType) {
                 var refreshClass = item.RefreshProgress || (item.RefreshStatus && virtualFolder.item !== 'Idle') ? '' : ' class="hide"';
                 indicatorsHtml += '<div is="emby-itemrefreshindicator"' + refreshClass + ' data-progress="' + (item.RefreshProgress || 0) + '" data-status="' + item.RefreshStatus + '"></div>';
                 requireRefreshIndicator();
@@ -1549,7 +1326,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 cardImageContainerOpen += '<div class="cardIndicators">' + indicatorsHtml + '</div>';
             }
 
-            //if (item.Type === 'Program' || item.Type === 'Timer') {
+            //if (itemType === 'Program' || itemType === 'Timer') {
             //    cardImageContainerOpen += getProgramIndicators(item);
             //}
 
@@ -1557,7 +1334,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 cardImageContainerOpen += getCardDefaultText(item, options);
             }
 
-            var tagName = (layoutManager.tv) && !overlayButtons ? 'button' : 'div';
+            var tagName = (isLayoutTv) && !overlayButtons ? 'button' : 'div';
 
             var nameWithPrefix = (item.SortName || item.Name || '');
             var prefix = nameWithPrefix.substring(0, Math.min(3, nameWithPrefix.length));
@@ -1583,7 +1360,7 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
                 actionAttribute = '';
             }
 
-            if (item.Type !== 'MusicAlbum' && item.Type !== 'MusicArtist' && item.Type !== 'Audio') {
+            if (itemType !== 'MusicAlbum' && itemType !== 'MusicArtist' && itemType !== 'Audio') {
                 className += ' card-withuserdata';
             }
 
@@ -1596,14 +1373,77 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             var contextData = options.context ? (' data-context="' + options.context + '"') : '';
             var parentIdData = options.parentId ? (' data-parentid="' + options.parentId + '"') : '';
 
-            return '<' + tagName + ' data-index="' + index + '"' + timerAttributes + actionAttribute + ' data-isfolder="' + (item.IsFolder || false) + '" data-serverid="' + (item.ServerId || options.serverId) + '" data-id="' + (item.Id || item.ItemId) + '" data-type="' + item.Type + '"' + mediaTypeData + collectionTypeData + channelIdData + positionTicksData + collectionIdData + playlistIdData + contextData + parentIdData + ' data-prefix="' + prefix + '" class="' + className + '">' + cardImageContainerOpen + innerCardFooter + cardImageContainerClose + overlayButtons + cardScalableClose + outerCardFooter + cardBoxClose + '</' + tagName + '>';
+            var additionalCardContent = '';
+
+            if (isLayoutDesktop) {
+                additionalCardContent += getHoverMenuHtml(item, action, options);
+            }
+
+            return '<' + tagName + ' data-index="' + index + '"' + timerAttributes + actionAttribute + ' data-isfolder="' + (item.IsFolder || false) + '" data-serverid="' + (item.ServerId || options.serverId) + '" data-id="' + (item.Id || item.ItemId) + '" data-type="' + itemType + '"' + mediaTypeData + collectionTypeData + channelIdData + positionTicksData + collectionIdData + playlistIdData + contextData + parentIdData + ' data-prefix="' + prefix + '" class="' + className + '">' + cardImageContainerOpen + innerCardFooter + cardImageContainerClose + overlayButtons + additionalCardContent + cardScalableClose + outerCardFooter + cardBoxClose + '</' + tagName + '>';
+        }
+
+        function getHoverMenuHtml(item, action, options) {
+
+            var html = '';
+
+            html += '<div class="cardOverlayContainer itemAction" data-action="' + action + '">';
+
+            var btnCssClass = 'cardOverlayButton cardOverlayButton-hover itemAction';
+
+            var serverId = item.ServerId || options.serverId;
+            var itemType = item.Type;
+            var itemId = item.Id;
+
+            if (playbackManager.canPlay(item) && options.hoverPlayButton !== false) {
+
+                html += '<button is="paper-icon-button-light" class="' + btnCssClass + ' cardOverlayFab-primary" data-action="resume"><i class="md-icon cardOverlayButtonIcon">&#xE037;</i></button>';
+            }
+
+            html += '<div class="cardOverlayButton-br">';
+
+            //if (itemHelper.canEdit({ Policy: { IsAdministrator: true } }, item)) {
+
+            //    //require(['emby-playstatebutton']);
+            //    html += '<button is="paper-icon-button-light" class="' + btnCssClass + '" data-action="edit"><i class="md-icon cardOverlayButtonIcon cardOverlayButtonIcon-hover">&#xE254;</i></button>';
+            //}
+
+            var userData = item.UserData || {};
+
+            if (itemHelper.canMarkPlayed(item)) {
+
+                require(['emby-playstatebutton']);
+                html += '<button is="emby-playstatebutton" type="button" data-action="none" class="' + btnCssClass + '" data-id="' + itemId + '" data-serverid="' + serverId + '" data-itemtype="' + itemType + '" data-played="' + (userData.Played) + '"><i class="md-icon cardOverlayButtonIcon cardOverlayButtonIcon-hover">&#xE5CA;</i></button>';
+            }
+
+            if (itemHelper.canRate(item)) {
+
+                var likes = userData.Likes == null ? '' : userData.Likes;
+
+                require(['emby-ratingbutton']);
+                html += '<button is="emby-ratingbutton" type="button" data-action="none" class="' + btnCssClass + '" data-id="' + itemId + '" data-serverid="' + serverId + '" data-itemtype="' + itemType + '" data-likes="' + likes + '" data-isfavorite="' + (userData.IsFavorite) + '"><i class="md-icon cardOverlayButtonIcon cardOverlayButtonIcon-hover">&#xE87D;</i></button>';
+            }
+
+            html += '<button is="paper-icon-button-light" class="' + btnCssClass + '" data-action="menu"><i class="md-icon cardOverlayButtonIcon cardOverlayButtonIcon-hover">&#xE5D3;</i></button>';
+
+            html += '</div>';
+            html += '</div>';
+
+            return html;
         }
 
         function getCardDefaultText(item, options) {
 
+            var itemType = item.Type;
+
             var collectionType = item.CollectionType;
             if (collectionType === 'livetv') {
                 return '<i class="cardImageIcon md-icon">&#xE1B2;</i>';
+            }
+            if (collectionType === 'playlists') {
+                return '<i class="cardImageIcon md-icon">&#xE5D2;</i>';
+            }
+            if (collectionType === 'games') {
+                return '<i class="cardImageIcon md-icon">&#xe30f;</i>';
             }
             if (collectionType === 'homevideos' || collectionType === 'photos') {
                 return '<i class="cardImageIcon md-icon">&#xE412;</i>';
@@ -1611,17 +1451,20 @@ define(['datetime', 'imageLoader', 'connectionManager', 'itemHelper', 'focusMana
             if (collectionType === 'music') {
                 return '<i class="cardImageIcon md-icon">&#xE310;</i>';
             }
-            if (item.Type === 'MusicAlbum') {
+            if (itemType === 'MusicAlbum') {
                 return '<i class="cardImageIcon md-icon">&#xE019;</i>';
             }
-            if (item.Type === 'MusicArtist' || item.Type === 'Person') {
+            if (itemType === 'MusicArtist' || itemType === 'Person') {
                 return '<i class="cardImageIcon md-icon">&#xE7FD;</i>';
+            }
+            if (itemType === 'Channel') {
+                return '<i class="cardImageIcon md-icon">&#xE2C7;</i>';
             }
             if (options.defaultCardImageIcon) {
                 return '<i class="cardImageIcon md-icon">' + options.defaultCardImageIcon + '</i>';
             }
 
-            var defaultName = isUsingLiveTvNaming(item) ? item.Name : itemHelper.getDisplayName(item);
+            var defaultName = isUsingLiveTvNaming(itemType) ? item.Name : itemHelper.getDisplayName(item);
             return '<div class="cardText cardDefaultText">' + defaultName + '</div>';
         }
 

@@ -41,7 +41,7 @@
         var windowHeight = windowSize.innerHeight;
         var windowWidth = windowSize.innerWidth;
 
-        if (windowHeight < 540) {
+        if (windowWidth < 600 || windowHeight < 600) {
             return null;
         }
 
@@ -113,8 +113,8 @@
             dialogOptions.modal = false;
             dialogOptions.entryAnimation = options.entryAnimation;
             dialogOptions.exitAnimation = options.exitAnimation;
-            dialogOptions.entryAnimationDuration = options.entryAnimationDuration || 140;
-            dialogOptions.exitAnimationDuration = options.exitAnimationDuration || 100;
+            dialogOptions.entryAnimationDuration = options.entryAnimationDuration;
+            dialogOptions.exitAnimationDuration = options.exitAnimationDuration;
             dialogOptions.autoFocus = false;
         }
 
@@ -145,21 +145,22 @@
 
         var i, length, option;
         var renderIcon = false;
+        var icons = [];
+        var itemIcon;
         for (i = 0, length = options.items.length; i < length; i++) {
 
             option = options.items[i];
 
-            if (!option.icon) {
-                option.icon = option.selected ? 'check' : null;
-            }
+            itemIcon = option.icon || (option.selected ? 'check' : null);
 
-            if (option.icon) {
+            if (itemIcon) {
                 renderIcon = true;
             }
+            icons.push(itemIcon || '');
         }
 
         if (layoutManager.tv) {
-            html += '<button is="paper-icon-button-light" class="btnCloseActionSheet hide-mouse-idle" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
+            html += '<button is="paper-icon-button-light" class="btnCloseActionSheet hide-mouse-idle-tv" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
         }
 
         // If any items have an icon, give them all an icon just to make sure they're all lined up evenly
@@ -191,12 +192,8 @@
 
         var menuItemClass = 'listItem listItem-button actionSheetMenuItem';
 
-        if (options.shaded) {
-            menuItemClass += '  listItem-shaded';
-        }
-
-        if (options.border) {
-            menuItemClass += '  listItem-border';
+        if (options.border || options.shaded) {
+            menuItemClass += ' listItem-border';
         }
 
         if (options.menuItemClass) {
@@ -227,9 +224,11 @@
             var optionId = option.id == null || option.id === '' ? option.value : option.id;
             html += '<button' + autoFocus + ' is="emby-button" type="button" class="' + menuItemClass + '" data-id="' + optionId + '">';
 
-            if (option.icon) {
+            itemIcon = icons[i];
 
-                html += '<i class="actionsheetMenuItemIcon listItemIcon listItemIcon-transparent md-icon">' + option.icon + '</i>';
+            if (itemIcon) {
+
+                html += '<i class="actionsheetMenuItemIcon listItemIcon listItemIcon-transparent md-icon">' + itemIcon + '</i>';
             }
             else if (renderIcon && !center) {
                 html += '<i class="actionsheetMenuItemIcon listItemIcon listItemIcon-transparent md-icon" style="visibility:hidden;">check</i>';
@@ -260,7 +259,7 @@
 
         if (options.showCancel) {
             html += '<div class="buttons">';
-            html += '<button is="emby-button" type="button" class="btnCloseActionSheet">' + globalize.translate('sharedcomponents#ButtonCancel') + '</button>';
+            html += '<button is="emby-button" type="button" class="btnCloseActionSheet">' + globalize.translate('sharedcomponents#Cancel') + '</button>';
             html += '</div>';
         }
         html += '</div>';
@@ -347,22 +346,13 @@
 
             dialogHelper.open(dlg);
 
-            // Make sure the above open has completed so that we can query offsetWidth and offsetHeight
-            // This was needed in safari, but in chrome this is causing the dialog to change position while animating
-            var setPositions = function () {
-                var pos = options.positionTo && dialogOptions.size !== 'fullscreen' ? getPosition(options, dlg) : null;
+            var pos = options.positionTo && dialogOptions.size !== 'fullscreen' ? getPosition(options, dlg) : null;
 
-                if (pos) {
-                    dlg.style.position = 'fixed';
-                    dlg.style.margin = 0;
-                    dlg.style.left = pos.left + 'px';
-                    dlg.style.top = pos.top + 'px';
-                }
-            };
-            if (browser.safari) {
-                setTimeout(setPositions, 0);
-            } else {
-                setPositions();
+            if (pos) {
+                dlg.style.position = 'fixed';
+                dlg.style.margin = 0;
+                dlg.style.left = pos.left + 'px';
+                dlg.style.top = pos.top + 'px';
             }
         });
     }

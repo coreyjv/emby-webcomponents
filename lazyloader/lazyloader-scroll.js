@@ -1,4 +1,4 @@
-define(['visibleinviewport', 'dom'], function (visibleinviewport, dom) {
+define(['visibleinviewport', 'dom', 'browser'], function (visibleinviewport, dom, browser) {
     'use strict';
 
     var thresholdX;
@@ -10,15 +10,24 @@ define(['visibleinviewport', 'dom'], function (visibleinviewport, dom) {
 
     function resetThresholds() {
 
-        var x = screen.availWidth * 0.1;
-        var y = screen.availHeight * 0.1;
+        var threshold = 0.3;
 
-        thresholdX = x;
-        thresholdY = y;
+        thresholdX = screen.availWidth * threshold;
+        thresholdY = screen.availHeight * threshold;
     }
 
-    dom.addEventListener(window, "orientationchange", resetThresholds, { passive: true });
-    dom.addEventListener(window, 'resize', resetThresholds, { passive: true });
+    function resetThresholdsOnTimer() {
+
+        setTimeout(resetThresholds, 500);
+    }
+
+    if (browser.iOS) {
+        dom.addEventListener(window, "orientationchange", resetThresholdsOnTimer, { passive: true });
+        dom.addEventListener(window, 'resize', resetThresholdsOnTimer, { passive: true });
+    } else {
+        dom.addEventListener(window, "orientationchange", resetThresholds, { passive: true });
+        dom.addEventListener(window, 'resize', resetThresholds, { passive: true });
+    }
     resetThresholds();
 
     function isVisible(elem) {
@@ -34,6 +43,8 @@ define(['visibleinviewport', 'dom'], function (visibleinviewport, dom) {
             tokens[i] = true;
         }
     }
+
+    var enableTimeoutHack = browser.edge || browser.safari;
 
     function unveilElementsInternal(instance, callback) {
 
@@ -121,6 +132,12 @@ define(['visibleinviewport', 'dom'], function (visibleinviewport, dom) {
         });
 
         unveil();
+
+        // This is helping resolve issues with initial visibility in both edge and safari
+        // 0 is fine for safari, but needed 100 for edge
+        if (enableTimeoutHack) {
+            setTimeout(unveil, 100);
+        }
     }
 
     function LazyLoader(options) {

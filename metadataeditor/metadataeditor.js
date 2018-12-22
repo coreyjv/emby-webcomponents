@@ -1,9 +1,10 @@
-﻿define(['itemHelper', 'dom', 'layoutManager', 'dialogHelper', 'datetime', 'loading', 'focusManager', 'connectionManager', 'globalize', 'require', 'shell', 'emby-checkbox', 'emby-input', 'emby-select', 'listViewStyle', 'emby-textarea', 'emby-button', 'paper-icon-button-light', 'css!./../formdialog', 'clearButtonStyle'], function (itemHelper, dom, layoutManager, dialogHelper, datetime, loading, focusManager, connectionManager, globalize, require, shell) {
+﻿define(['itemHelper', 'dom', 'layoutManager', 'dialogHelper', 'datetime', 'loading', 'focusManager', 'connectionManager', 'globalize', 'require', 'shell', 'emby-checkbox', 'emby-input', 'emby-select', 'listViewStyle', 'emby-textarea', 'emby-button', 'paper-icon-button-light', 'css!./../formdialog', 'clearButtonStyle', 'flexStyles'], function (itemHelper, dom, layoutManager, dialogHelper, datetime, loading, focusManager, connectionManager, globalize, require, shell) {
     'use strict';
 
     var currentContext;
     var metadataEditorInfo;
     var currentItem;
+    var hasChanges;
 
     function isDialog() {
         return currentContext.classList.contains('dialog');
@@ -18,7 +19,11 @@
 
     function submitUpdatedItem(form, item) {
 
-        function afterContentTypeUpdated() {
+        var apiClient = getApiClient();
+
+        apiClient.updateItem(item).then(function () {
+
+            hasChanges = true;
 
             require(['toast'], function (toast) {
                 toast(globalize.translate('sharedcomponents#MessageItemSaved'));
@@ -26,31 +31,6 @@
 
             loading.hide();
             closeDialog(true);
-        }
-
-        var apiClient = getApiClient();
-
-        apiClient.updateItem(item).then(function () {
-
-            var newContentType = form.querySelector('#selectContentType').value || '';
-
-            if ((metadataEditorInfo.ContentType || '') !== newContentType) {
-
-                apiClient.ajax({
-
-                    url: apiClient.getUrl('Items/' + item.Id + '/ContentType', {
-                        ContentType: newContentType
-                    }),
-
-                    type: 'POST'
-
-                }).then(function () {
-                    afterContentTypeUpdated();
-                });
-
-            } else {
-                afterContentTypeUpdated();
-            }
 
         });
     }
@@ -92,25 +72,18 @@
 
     function getDateValue(form, element, property) {
 
-        var val = form.querySelector(element).value;
+        var elem = form.querySelector(element);
+        var offsetMs = new Date().getTimezoneOffset() * 60 * 1000;
+
+        var val = elem.valueAsNumber;
+        if (val) {
+            return new Date(val + offsetMs).toISOString();
+        }
+
+        val = form.querySelector(element).value;
 
         if (!val) {
             return null;
-        }
-
-        if (currentItem[property]) {
-
-            var date = datetime.parseISO8601Date(currentItem[property], true);
-
-            var parts = date.toISOString().split('T');
-
-            // If the date is the same, preserve the time
-            if (parts[0].indexOf(val) === 0) {
-
-                var iso = parts[1];
-
-                val += 'T' + iso;
-            }
         }
 
         return val;
@@ -128,12 +101,8 @@
             OriginalTitle: form.querySelector('#txtOriginalName').value,
             ForcedSortName: form.querySelector('#txtSortName').value,
             CommunityRating: form.querySelector('#txtCommunityRating').value,
-            HomePageUrl: form.querySelector('#txtHomePageUrl').value,
             CriticRating: form.querySelector('#txtCriticRating').value,
             IndexNumber: form.querySelector('#txtIndexNumber').value || null,
-            AbsoluteEpisodeNumber: form.querySelector('#txtAbsoluteEpisodeNumber').value,
-            DvdEpisodeNumber: form.querySelector('#txtDvdEpisodeNumber').value,
-            DvdSeasonNumber: form.querySelector('#txtDvdSeasonNumber').value,
             AirsBeforeSeasonNumber: form.querySelector('#txtAirsBeforeSeason').value,
             AirsAfterSeasonNumber: form.querySelector('#txtAirsAfterSeason').value,
             AirsBeforeEpisodeNumber: form.querySelector('#txtAirsBeforeEpisode').value,
@@ -433,26 +402,6 @@
         select.innerHTML = html;
     }
 
-    function renderContentTypeOptions(context, metadataInfo) {
-
-        if (!metadataInfo.ContentTypeOptions.length) {
-            hideElement('#fldContentType', context);
-        } else {
-            showElement('#fldContentType', context);
-        }
-
-        var html = metadataInfo.ContentTypeOptions.map(function (i) {
-
-
-            return '<option value="' + i.Value + '">' + i.Name + '</option>';
-
-        }).join('');
-
-        var selectEl = context.querySelector('#selectContentType');
-        selectEl.innerHTML = html;
-        selectEl.value = metadataInfo.ContentType || '';
-    }
-
     function loadExternalIds(context, item, externalIds) {
 
         var html = '';
@@ -469,16 +418,16 @@
             var labelText = globalize.translate('sharedcomponents#LabelDynamicExternalId').replace('{0}', idInfo.Name);
 
             html += '<div class="inputContainer">';
-            html += '<div style="display: flex; align-items: center;">';
+            html += '<div class="flex align-items-center">';
 
             var value = providerIds[idInfo.Key] || '';
 
-            html += '<div style="flex-grow:1;">';
+            html += '<div class="flex-grow">';
             html += '<input is="emby-input" class="txtExternalId" value="' + value + '" data-providerkey="' + idInfo.Key + '" data-formatstring="' + formatString + '" id="' + id + '" label="' + labelText + '"/>';
             html += '</div>';
 
             if (formatString) {
-                html += '<button type="button" is="paper-icon-button-light" class="btnOpenExternalId" data-fieldid="' + id + '"><i class="md-icon">open_in_browser</i></button>';
+                html += '<button type="button" is="paper-icon-button-light" class="btnOpenExternalId align-self-flex-end" data-fieldid="' + id + '"><i class="md-icon">open_in_browser</i></button>';
             }
             html += '</div>';
 
@@ -534,7 +483,8 @@
     }
 
     function setFieldVisibilities(context, item) {
-        if (item.Path && item.EnableMediaSourceDisplay !== false) {
+
+        if (item.Path) {
             showElement('#fldPath', context);
         } else {
             hideElement('#fldPath', context);
@@ -544,6 +494,12 @@
             showElement('#fldOriginalName', context);
         } else {
             hideElement('#fldOriginalName', context);
+        }
+
+        if (item.Type === "Audio") {
+            hideElement('#fldSortName', context);
+        } else {
+            showElement('#fldSortName', context);
         }
 
         if (item.Type === "Series") {
@@ -598,12 +554,6 @@
         } else {
             hideElement('#fldArtist', context);
             hideElement('#fldAlbum', context);
-        }
-
-        if (item.Type === "Episode") {
-            showElement('#collapsibleDvdEpisodeInfo', context);
-        } else {
-            hideElement('#collapsibleDvdEpisodeInfo', context);
         }
 
         if (item.Type === "Episode" && item.ParentIndexNumber === 0) {
@@ -663,12 +613,6 @@
             showElement('.overviewContainer', context);
         }
 
-        if (item.Type === "TvChannel") {
-            hideElement('.websiteFieldContainer', context);
-        } else {
-            showElement('.websiteFieldContainer', context);
-        }
-
         if (item.Type === "Person") {
             //todo
             context.querySelector('#txtProductionYear').label(globalize.translate('sharedcomponents#LabelBirthYear'));
@@ -720,14 +664,31 @@
 
         if (item.Type === "BoxSet") {
             showElement('#fldDisplayOrder', context);
+            hideElement('.seriesDisplayOrderDescription', context);
 
             context.querySelector('#selectDisplayOrder').innerHTML = '<option value="SortName">' + globalize.translate('sharedcomponents#SortName') + '</option><option value="PremiereDate">' + globalize.translate('sharedcomponents#ReleaseDate') + '</option>';
-            showElement('#collapsibleDisplaySettings', context);
+        } else if (item.Type === "Series") {
+            showElement('#fldDisplayOrder', context);
+            showElement('.seriesDisplayOrderDescription', context);
+
+            context.querySelector('#selectDisplayOrder').innerHTML = '<option value="">' + globalize.translate('sharedcomponents#Aired') + '</option><option value="absolute">' + globalize.translate('sharedcomponents#Absolute') + '</option><option value="dvd">Dvd</option>';
         } else {
             context.querySelector('#selectDisplayOrder').innerHTML = '';
             hideElement('#fldDisplayOrder', context);
-            hideElement('#collapsibleDisplaySettings', context);
         }
+    }
+
+    function pad(num, size) {
+        var s = num + "";
+        while (s.length < size) {
+            s = "0" + s;
+        }
+        return s;
+    }
+
+    function toLocalIsoString(date) {
+
+        return date.getFullYear() + '-' + pad(date.getMonth() + 1, 2) + '-' + pad(date.getDate(), 2);
     }
 
     function fillItemInfo(context, item, parentalRatingOptions) {
@@ -778,16 +739,12 @@
         context.querySelector('#txtTagline').value = (item.Taglines && item.Taglines.length ? item.Taglines[0] : '');
         context.querySelector('#txtSortName').value = item.ForcedSortName || "";
         context.querySelector('#txtCommunityRating').value = item.CommunityRating || "";
-        context.querySelector('#txtHomePageUrl').value = item.HomePageUrl || "";
 
         context.querySelector('#txtCriticRating').value = item.CriticRating || "";
 
         context.querySelector('#txtIndexNumber').value = item.IndexNumber == null ? '' : item.IndexNumber;
         context.querySelector('#txtParentIndexNumber').value = item.ParentIndexNumber == null ? '' : item.ParentIndexNumber;
 
-        context.querySelector('#txtAbsoluteEpisodeNumber').value = ('AbsoluteEpisodeNumber' in item) ? item.AbsoluteEpisodeNumber : "";
-        context.querySelector('#txtDvdEpisodeNumber').value = ('DvdEpisodeNumber' in item) ? item.DvdEpisodeNumber : "";
-        context.querySelector('#txtDvdSeasonNumber').value = ('DvdSeasonNumber' in item) ? item.DvdSeasonNumber : "";
         context.querySelector('#txtAirsBeforeSeason').value = ('AirsBeforeSeasonNumber' in item) ? item.AirsBeforeSeasonNumber : "";
         context.querySelector('#txtAirsAfterSeason').value = ('AirsAfterSeasonNumber' in item) ? item.AirsAfterSeasonNumber : "";
         context.querySelector('#txtAirsBeforeEpisode').value = ('AirsBeforeEpisodeNumber' in item) ? item.AirsBeforeEpisodeNumber : "";
@@ -798,7 +755,12 @@
             return a.Name;
         }).join(';');
 
-        context.querySelector('#selectDisplayOrder').value = item.DisplayOrder;
+        if (item.Type === 'Series') {
+            context.querySelector('#selectDisplayOrder').value = item.DisplayOrder || '';
+        }
+        else {
+            context.querySelector('#selectDisplayOrder').value = item.DisplayOrder || '';
+        }
 
         context.querySelector('#txtArtist').value = (item.ArtistItems || []).map(function (a) {
             return a.Name;
@@ -810,7 +772,7 @@
             try {
                 date = datetime.parseISO8601Date(item.DateCreated, true);
 
-                context.querySelector('#txtDateAdded').value = date.toISOString().slice(0, 10);
+                context.querySelector('#txtDateAdded').value = toLocalIsoString(date);
             } catch (e) {
                 context.querySelector('#txtDateAdded').value = '';
             }
@@ -822,7 +784,7 @@
             try {
                 date = datetime.parseISO8601Date(item.PremiereDate, true);
 
-                context.querySelector('#txtPremiereDate').value = date.toISOString().slice(0, 10);
+                context.querySelector('#txtPremiereDate').value = toLocalIsoString(date);
             } catch (e) {
                 context.querySelector('#txtPremiereDate').value = '';
             }
@@ -834,7 +796,7 @@
             try {
                 date = datetime.parseISO8601Date(item.EndDate, true);
 
-                context.querySelector('#txtEndDate').value = date.toISOString().slice(0, 10);
+                context.querySelector('#txtEndDate').value = toLocalIsoString(date);
             } catch (e) {
                 context.querySelector('#txtEndDate').value = '';
             }
@@ -1036,11 +998,10 @@
             metadataEditorInfo = responses[1];
 
             currentItem = item;
+            hasChanges = false;
 
             var languages = metadataEditorInfo.Cultures;
             var countries = metadataEditorInfo.Countries;
-
-            renderContentTypeOptions(context, metadataEditorInfo);
 
             loadExternalIds(context, item, metadataEditorInfo.ExternalIdInfos);
 
@@ -1104,7 +1065,12 @@
                     centerFocus(dlg.querySelector('.formDialogContent'), false, false);
                 }
 
-                resolve();
+                if (hasChanges) {
+                    resolve();
+                }
+                else {
+                    reject();
+                }
             });
 
             currentContext = dlg;

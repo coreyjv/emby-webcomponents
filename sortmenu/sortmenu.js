@@ -36,7 +36,7 @@
 
         userSettings.setFilter(settingsKey + '-sortorder', context.querySelector('.selectSortOrder').value);
         userSettings.setFilter(settingsKey + '-sortby', context.querySelector('.selectSortBy').value);
-   }
+    }
 
     function SortMenu() {
 
@@ -53,7 +53,11 @@
                     scrollY: false
                 };
 
-                dialogOptions.size = 'fullscreen-border';
+                if (layoutManager.tv) {
+                    dialogOptions.size = 'fullscreen';
+                } else {
+                    dialogOptions.size = 'small';
+                }
 
                 var dlg = dialogHelper.createDialog(dialogOptions);
 
@@ -62,7 +66,7 @@
                 var html = '';
 
                 html += '<div class="formDialogHeader">';
-                html += '<button is="paper-icon-button-light" class="btnCancel hide-mouse-idle" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
+                html += '<button is="paper-icon-button-light" class="btnCancel hide-mouse-idle-tv" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
                 html += '<h3 class="formDialogHeaderTitle">${Sort}</h3>';
 
                 html += '</div>';

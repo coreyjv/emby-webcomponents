@@ -1,4 +1,4 @@
-define(['lazyLoader', 'imageFetcher', 'layoutManager', 'browser', 'appSettings', 'require', 'css!./style'], function (lazyLoader, imageFetcher, layoutManager, browser, appSettings, require) {
+define(['lazyLoader', 'imageFetcher', 'layoutManager', 'browser', 'appSettings', 'require'], function (lazyLoader, imageFetcher, layoutManager, browser, appSettings, require) {
     'use strict';
 
     var requestIdleCallback = window.requestIdleCallback || function (fn) {
@@ -8,7 +8,7 @@ define(['lazyLoader', 'imageFetcher', 'layoutManager', 'browser', 'appSettings',
     var self = {};
 
     // seeing slow performance with firefox
-    var enableFade = !browser.slow && !browser.firefox && !browser.edge && !browser.xboxOne;
+    var enableFade = false;
 
     function fillImage(elem, source, enableEffects) {
 
@@ -183,7 +183,9 @@ define(['lazyLoader', 'imageFetcher', 'layoutManager', 'browser', 'appSettings',
 
         for (var i = 0, length = items.length; i < length; i++) {
 
-            var ratio = items[i].PrimaryImageAspectRatio || 0;
+            var item = items[i];
+            var imageItem = item.ProgramInfo || item;
+            var ratio = imageItem.PrimaryImageAspectRatio || 0;
 
             if (!ratio) {
                 continue;
@@ -222,15 +224,14 @@ define(['lazyLoader', 'imageFetcher', 'layoutManager', 'browser', 'appSettings',
             return aspect16x9;
         }
 
+        var aspectFourThree = 4 / 3;
+        if (Math.abs(aspectFourThree - result) <= 0.2) {
+            return aspectFourThree;
+        }
+
         // If really close to 1 (square image), just return 1
         if (Math.abs(1 - result) <= 0.15) {
             return 1;
-        }
-
-        // If really close to 4:3 (poster image), just return 2:3
-        var aspect4x3 = 4 / 3;
-        if (Math.abs(aspect4x3 - result) <= 0.15) {
-            return aspect4x3;
         }
 
         return result;

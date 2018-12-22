@@ -1,13 +1,9 @@
-define(['require', 'browser'], function (require, browser) {
+define([], function () {
     'use strict';
 
     function LazyLoader(options) {
 
         this.options = options;
-    }
-
-    if (browser.edge) {
-        require(['css!./lazyedgehack']);
     }
 
     LazyLoader.prototype.createObserver = function () {
@@ -17,7 +13,7 @@ define(['require', 'browser'], function (require, browser) {
         var loadedCount = 0;
         var callback = options.callback;
 
-        observerOptions.rootMargin = "10%";
+        observerOptions.rootMargin = "50%";
 
         var observerId = 'obs' + new Date().getTime();
 

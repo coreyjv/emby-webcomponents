@@ -1,4 +1,4 @@
-define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'globalize', 'loading', 'dom', 'recordingHelper'], function (playbackManager, inputManager, connectionManager, appRouter, globalize, loading, dom, recordingHelper) {
+define(['layoutManager', 'playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'globalize', 'loading', 'dom', 'recordingHelper'], function (layoutManager, playbackManager, inputManager, connectionManager, appRouter, globalize, loading, dom, recordingHelper) {
     'use strict';
 
     function playAllFromHere(card, serverId, queue) {
@@ -22,18 +22,39 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
             }
         }
 
+        var itemsContainer = dom.parentWithClass(card, 'itemsContainer');
+        if (itemsContainer && itemsContainer.fetchData) {
+
+            var queryOptions = queue ? { StartIndex: startIndex } : {};
+
+            return itemsContainer.fetchData(queryOptions).then(function (result) {
+
+                if (queue) {
+                    return playbackManager.queue({
+                        items: result.Items
+                    });
+                } else {
+
+                    return playbackManager.play({
+                        items: result.Items,
+                        startIndex: startIndex
+                    });
+                }
+            });
+        }
+
         if (!ids.length) {
             return;
         }
 
         if (queue) {
-            playbackManager.queue({
+            return playbackManager.queue({
                 ids: ids,
                 serverId: serverId
             });
         } else {
 
-            playbackManager.play({
+            return playbackManager.play({
                 ids: ids,
                 serverId: serverId,
                 startIndex: startIndex
@@ -99,7 +120,8 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
                         queueAllFromHere: !item.IsFolder,
                         playlistId: playlistId,
                         collectionId: collectionId,
-                        user: user
+                        user: user,
+                        multiSelect: layoutManager.mobile
 
                     }, options || {})).then(function (result) {
 
@@ -108,12 +130,7 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
                         if (result.command === 'playallfromhere' || result.command === 'queueallfromhere') {
                             executeAction(card, options.positionTo, result.command);
                         }
-                        else if (result.command === 'removefromplaylist' || result.command === 'removefromcollection') {
-                            notifyRefreshNeeded(card, options.itemsContainer);
-                        }
-                        else if (result.command === 'canceltimer') {
-                            notifyRefreshNeeded(card, options.itemsContainer);
-                        } else if (result.updated || result.deleted) {
+                        else if (result.updated || result.deleted) {
                             notifyRefreshNeeded(card, options.itemsContainer);
                         }
                     });
@@ -268,17 +285,15 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
         }
 
         else if (action === 'edit') {
-            getItem(target).then(function (item) {
-                editItem(item, serverId);
-            });
+            editItem(item.Id, type, serverId);
         }
 
         else if (action === 'playtrailer') {
-            getItem(target).then(playTrailer);
+            playTrailer(item.Id, serverId);
         }
 
         else if (action === 'addtoplaylist') {
-            getItem(target).then(addToPlaylist);
+            addToPlaylist(item.Id, serverId);
         }
 
         else if (action === 'custom') {
@@ -295,27 +310,27 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
         }
     }
 
-    function addToPlaylist(item) {
+    function addToPlaylist(itemId, serverId) {
         require(['playlistEditor'], function (playlistEditor) {
 
             new playlistEditor().show({
-                items: [item.Id],
-                serverId: item.ServerId
+                items: [itemId],
+                serverId: serverId
 
             });
         });
     }
 
-    function playTrailer(item) {
+    function playTrailer(itemId, serverId) {
 
-        var apiClient = connectionManager.getApiClient(item.ServerId);
+        var apiClient = connectionManager.getApiClient(serverId);
 
-        apiClient.getLocalTrailers(apiClient.getCurrentUserId(), item.Id).then(function (trailers) {
+        apiClient.getLocalTrailers(apiClient.getCurrentUserId(), itemId).then(function (trailers) {
             playbackManager.play({ items: trailers });
         });
     }
 
-    function editItem(item, serverId) {
+    function editItem(itemId, itemType, serverId) {
 
         var apiClient = connectionManager.getApiClient(serverId);
 
@@ -323,22 +338,32 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
 
             var serverId = apiClient.serverInfo().Id;
 
-            if (item.Type === 'Timer') {
-                if (item.ProgramId) {
-                    require(['recordingCreator'], function (recordingCreator) {
-
-                        recordingCreator.show(item.ProgramId, serverId).then(resolve, reject);
-                    });
-                } else {
-                    require(['recordingEditor'], function (recordingEditor) {
-
-                        recordingEditor.show(item.Id, serverId).then(resolve, reject);
-                    });
-                }
+            if (itemType === 'Timer') {
+                editTimer(itemId, serverId);
             } else {
                 require(['metadataEditor'], function (metadataEditor) {
 
-                    metadataEditor.show(item.Id, serverId).then(resolve, reject);
+                    metadataEditor.show(itemId, serverId).then(resolve, reject);
+                });
+            }
+        });
+    }
+
+    function editTimer(itemId, serverId) {
+
+        var apiClient = connectionManager.getApiClient(serverId);
+
+        return apiClient.getLiveTvTimer(itemId).then(function (item) {
+
+            if (item.ProgramId) {
+                require(['recordingCreator'], function (recordingCreator) {
+
+                    recordingCreator.show(item.ProgramId, serverId).then(resolve, reject);
+                });
+            } else {
+                require(['recordingEditor'], function (recordingEditor) {
+
+                    recordingEditor.show(itemId, serverId).then(resolve, reject);
                 });
             }
         });
@@ -384,7 +409,9 @@ define(['playbackManager', 'inputManager', 'connectionManager', 'appRouter', 'gl
         var cmd = e.detail.command;
 
         if (cmd === 'play' || cmd === 'resume' || cmd === 'record' || cmd === 'menu' || cmd === 'info') {
-            var card = dom.parentWithClass(e.target, 'itemAction');
+
+            var target = e.target;
+            var card = dom.parentWithClass(target, 'itemAction') || dom.parentWithAttribute(target, 'data-id');
 
             if (card) {
                 e.preventDefault();

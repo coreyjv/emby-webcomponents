@@ -61,9 +61,15 @@
         }
 
         lookupInfo = {
-            SearchInfo: lookupInfo,
-            IncludeDisabledProviders: true
+            SearchInfo: lookupInfo
         };
+
+        if (currentItem && currentItem.Id) {
+            lookupInfo.ItemId = currentItem.Id;
+        }
+        else {
+            lookupInfo.IncludeDisabledProviders = true;
+        }
 
         loading.show();
 
@@ -196,7 +202,11 @@
             cardBoxCssClass += ' cardBox-focustransform';
         }
 
-        cardBoxCssClass += ' card-focuscontent cardBox-bottompadded';
+        cardBoxCssClass += ' cardBox-bottompadded';
+
+        if (layoutManager.tv) {
+            cardBoxCssClass += ' card-focuscontent cardBox-withfocuscontent';
+        }
 
         html += '<button type="button" class="' + cssClass + '" data-index="' + index + '">';
         html += '<div class="' + cardBoxCssClass + '">';

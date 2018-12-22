@@ -132,6 +132,11 @@ define(['serverNotifications', 'playbackManager', 'events', 'globalize', 'requir
             return;
         }
 
+        // Don't put a massive number of Id's onto the query string
+        if (newItems.length > 12) {
+            newItems.length = 12;
+        }
+
         apiClient.getItems(apiClient.getCurrentUserId(), {
 
             Recursive: true,
@@ -192,7 +197,7 @@ define(['serverNotifications', 'playbackManager', 'events', 'globalize', 'requir
                 [
                     {
                         action: 'cancel-install',
-                        title: globalize.translate('sharedcomponents#ButtonCancel'),
+                        title: globalize.translate('sharedcomponents#Cancel'),
                         icon: getIconUrl()
                     }
                 ];
@@ -263,7 +268,7 @@ define(['serverNotifications', 'playbackManager', 'events', 'globalize', 'requir
         [
             {
                 action: 'restart',
-                title: globalize.translate('sharedcomponents#ButtonRestart'),
+                title: globalize.translate('sharedcomponents#RestartServer'),
                 icon: getIconUrl()
             }
         ];

@@ -15,7 +15,7 @@
 
 .dialog {
     margin: 0;
-    border-radius: 4px;
+    border-radius: .2em;
     -webkit-font-smoothing: antialiased;
     border: 0;
     padding: 0;
@@ -51,13 +51,13 @@
 
     to {
         opacity: 0;
-        transform: scale(.5);
+        transform: scale(.8);
     }
 }
 
 @keyframes scaleup {
     from {
-        transform: scale(.5);
+        transform: scale(.8);
         opacity: 0;
     }
 

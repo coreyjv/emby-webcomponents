@@ -161,8 +161,6 @@
 
     function onPlaybackStart(e, state) {
 
-        console.log('nowplaying event: ' + e.type);
-
         var player = this;
 
         updatePlayerState(player, state, e.type);
@@ -170,10 +168,11 @@
 
     function onPlaybackStopped(e, state) {
 
-        console.log('nowplaying event: ' + e.type);
         var player = this;
 
-        hideMediaControls();
+        if (!state.NextItem) {
+            hideMediaControls();
+        }
     }
 
     function releaseCurrentPlayer() {
@@ -207,8 +206,6 @@
 
         currentPlayer = player;
 
-        console.log('binding remotecontrols to ' + player.name);
-
         var state = playbackManager.getPlayerState(player);
         updatePlayerState(player, state, 'init');
 
@@ -219,8 +216,6 @@
         events.on(currentPlayer, 'statechange', onStateChanged);
         events.on(currentPlayer, 'timeupdate', onGeneralEvent);
     }
-
-    console.log('binding remotecontrols to playbackManager');
 
     function execute(name) {
         playbackManager[name](currentPlayer);

@@ -1,4 +1,4 @@
-﻿define(['require', 'inputManager', 'browser', 'globalize', 'connectionManager', 'scrollHelper', 'serverNotifications', 'loading', 'datetime', 'focusManager', 'playbackManager', 'userSettings', 'imageLoader', 'events', 'layoutManager', 'itemShortcuts', 'dom', 'css!./guide.css', 'programStyles', 'material-icons', 'scrollStyles', 'emby-button', 'paper-icon-button-light', 'emby-tabs', 'emby-scroller', 'flexStyles', 'registerElement'], function (require, inputManager, browser, globalize, connectionManager, scrollHelper, serverNotifications, loading, datetime, focusManager, playbackManager, userSettings, imageLoader, events, layoutManager, itemShortcuts, dom) {
+﻿define(['require', 'inputManager', 'browser', 'globalize', 'connectionManager', 'scrollHelper', 'serverNotifications', 'loading', 'datetime', 'focusManager', 'playbackManager', 'userSettings', 'imageLoader', 'events', 'layoutManager', 'itemShortcuts', 'dom', 'css!./guide.css', 'programStyles', 'material-icons', 'scrollStyles', 'emby-button', 'paper-icon-button-light', 'emby-tabs', 'emby-scroller', 'flexStyles'], function (require, inputManager, browser, globalize, connectionManager, scrollHelper, serverNotifications, loading, datetime, focusManager, playbackManager, userSettings, imageLoader, events, layoutManager, itemShortcuts, dom) {
     'use strict';
 
     function showViewSettings(instance) {
@@ -276,6 +276,20 @@
             // Subtract to avoid getting programs that are starting when the grid ends
             var nextDay = new Date(date.getTime() + msPerDay - 2000);
 
+            // Normally we'd want to just let responsive css handle this,
+            // but since mobile browsers are often underpowered, 
+            // it can help performance to get them out of the markup
+            var allowIndicators = dom.getWindowSize().innerWidth >= 600;
+
+            var renderOptions = {
+                showHdIcon: allowIndicators && userSettings.get('guide-indicator-hd') === 'true',
+                showLiveIndicator: allowIndicators && userSettings.get('guide-indicator-live') !== 'false',
+                showPremiereIndicator: allowIndicators && userSettings.get('guide-indicator-premiere') !== 'false',
+                showNewIndicator: allowIndicators && userSettings.get('guide-indicator-new') !== 'false',
+                showRepeatIndicator: allowIndicators && userSettings.get('guide-indicator-repeat') === 'true',
+                showEpisodeTitle: layoutManager.tv ? false : true
+            };
+
             apiClient.getLiveTvChannels(channelQuery).then(function (channelsResult) {
 
                 var btnPreviousPage = context.querySelector('.btnPreviousPage');
@@ -304,7 +318,9 @@
                     context.querySelector('.guideOptions').classList.add('hide');
                 }
 
-                apiClient.getLiveTvPrograms({
+                var programFields = [];
+
+                var programQuery = {
                     UserId: apiClient.getCurrentUserId(),
                     MaxStartDate: nextDay.toISOString(),
                     MinEndDate: date.toISOString(),
@@ -317,10 +333,20 @@
                     SortBy: "StartDate",
                     EnableTotalRecordCount: false,
                     EnableUserData: false
+                };
 
-                }).then(function (programsResult) {
+                if (renderOptions.showHdIcon) {
+                    programFields.push('IsHD');
+                    programFields.push('Width');
+                }
 
-                    renderGuide(context, date, channelsResult.Items, programsResult.Items, apiClient, scrollToTimeMs, focusToTimeMs, startTimeOfDayMs, focusProgramOnRender);
+                if (programFields.length) {
+                    programQuery.Fields = programFields.join(',');
+                }
+
+                apiClient.getLiveTvPrograms(programQuery).then(function (programsResult) {
+
+                    renderGuide(context, date, channelsResult.Items, programsResult.Items, renderOptions, apiClient, scrollToTimeMs, focusToTimeMs, startTimeOfDayMs, focusProgramOnRender);
 
                     hideLoading();
 
@@ -424,7 +450,7 @@
             return '<i class="md-icon programIcon timerIcon">&#xE061;</i>';
         }
 
-        function getChannelProgramsHtml(context, date, channel, programs, options, listInfo) {
+        function getChannelProgramsHtml(context, apiClient, date, channel, programs, options, listInfo) {
 
             var html = '';
 
@@ -444,6 +470,8 @@
             var displayKidsContent = !categories.length || categories.indexOf('kids') !== -1;
             var displaySeriesContent = !categories.length || categories.indexOf('series') !== -1;
             var enableColorCodedBackgrounds = userSettings.get('guide-colorcodedbackgrounds') === 'true';
+
+            var enableLegacyIsNewCheck = !apiClient.isMinServerVersion('3.6.0.0');
 
             var programsFound;
             var now = new Date().getTime();
@@ -548,10 +576,10 @@
                     else if (program.IsPremiere && options.showPremiereIndicator) {
                         indicatorHtml = '<span class="premiereTvProgram guideProgramIndicator">' + globalize.translate('sharedcomponents#Premiere') + '</span>';
                     }
-                    else if (program.IsSeries && !program.IsRepeat && options.showNewIndicator) {
+                    else if (options.showNewIndicator && (program.IsNew || (enableLegacyIsNewCheck && program.IsSeries && !program.IsRepeat))) {
                         indicatorHtml = '<span class="newTvProgram guideProgramIndicator">' + globalize.translate('sharedcomponents#AttributeNew') + '</span>';
                     }
-                    else if (program.IsSeries && program.IsRepeat && options.showRepeatIndicator) {
+                    else if (program.IsRepeat && options.showRepeatIndicator) {
                         indicatorHtml = '<span class="repeatTvProgram guideProgramIndicator">' + globalize.translate('sharedcomponents#Repeat') + '</span>';
                     }
                     html += indicatorHtml || '';
@@ -567,7 +595,7 @@
 
                     html += '</div>';
 
-                    if (program.IsHD && options.showHdIcon) {
+                    if (options.showHdIcon && ((program.Width && program.Width >= 1200) || program.IsHD)) {
                         //html += '<i class="guideHdIcon md-icon programIcon">hd</i>';
                         if (layoutManager.tv) {
                             html += '<div class="programIcon guide-programTextIcon guide-programTextIcon-tv">HD</div>';
@@ -625,7 +653,12 @@
                         type: "Primary"
                     });
 
-                    html += '<div class="guideChannelImage lazy" data-src="' + url + '"></div>';
+                    // Edge seems to have a problem lazy loading these
+                    if (browser.edge) {
+                        html += '<div class="guideChannelImage" style="background-image:url(' + url + ');"></div>';
+                    } else {
+                        html += '<div class="guideChannelImage lazy" data-src="' + url + '"></div>';
+                    }
                 }
 
                 if (channel.ChannelNumber) {
@@ -645,21 +678,7 @@
             imageLoader.lazyChildren(channelList);
         }
 
-        function renderPrograms(context, date, channels, programs) {
-
-            // Normally we'd want to just let responsive css handle this,
-            // but since mobile browsers are often underpowered, 
-            // it can help performance to get them out of the markup
-            var allowIndicators = dom.getWindowSize().innerWidth >= 600;
-
-            var options = {
-                showHdIcon: allowIndicators && userSettings.get('guide-indicator-hd') === 'true',
-                showLiveIndicator: allowIndicators && userSettings.get('guide-indicator-live') !== 'false',
-                showPremiereIndicator: allowIndicators && userSettings.get('guide-indicator-premiere') !== 'false',
-                showNewIndicator: allowIndicators && userSettings.get('guide-indicator-new') === 'true',
-                showRepeatIndicator: allowIndicators && userSettings.get('guide-indicator-repeat') === 'true',
-                showEpisodeTitle: layoutManager.tv ? false : true
-            };
+        function renderPrograms(context, apiClient, date, channels, programs, options) {
 
             var listInfo = {
                 startIndex: 0
@@ -669,7 +688,7 @@
 
             for (var i = 0, length = channels.length; i < length; i++) {
 
-                html.push(getChannelProgramsHtml(context, date, channels[i], programs, options, listInfo));
+                html.push(getChannelProgramsHtml(context, apiClient, date, channels[i], programs, options, listInfo));
             }
 
             programGrid.innerHTML = html.join('');
@@ -696,7 +715,7 @@
             return (channelIndex * 10000000) + (start.getTime() / 60000);
         }
 
-        function renderGuide(context, date, channels, programs, apiClient, scrollToTimeMs, focusToTimeMs, startTimeOfDayMs, focusProgramOnRender) {
+        function renderGuide(context, date, channels, programs, renderOptions, apiClient, scrollToTimeMs, focusToTimeMs, startTimeOfDayMs, focusProgramOnRender) {
 
             programs.sort(function (a, b) {
                 return getProgramSortOrder(a, channels) - getProgramSortOrder(b, channels);
@@ -717,7 +736,7 @@
             var endDate = new Date(startDate.getTime() + msPerDay);
             context.querySelector('.timeslotHeaders').innerHTML = getTimeslotHeadersHtml(startDate, endDate);
             items = {};
-            renderPrograms(context, date, channels, programs);
+            renderPrograms(context, apiClient, date, channels, programs, renderOptions);
 
             if (focusProgramOnRender) {
                 focusProgram(context, itemId, channelRowId, focusToTimeMs, startTimeOfDayMs);

@@ -1,70 +1,7 @@
-define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 'dom', 'events', 'listViewStyle', 'emby-select', 'emby-checkbox'], function (require, globalize, loading, connectionManager, homeSections, dom, events) {
+define(['require', 'apphost', 'layoutManager', 'focusManager', 'globalize', 'loading', 'connectionManager', 'homeSections', 'dom', 'events', 'listViewStyle', 'emby-select', 'emby-checkbox'], function (require, appHost, layoutManager, focusManager, globalize, loading, connectionManager, homeSections, dom, events) {
     "use strict";
 
     var numConfigurableSections = 7;
-
-    function renderLatestItems(context, user, result) {
-
-        var folderHtml = '';
-
-        folderHtml += '<div class="checkboxList">';
-        var excludeViewTypes = ['playlists', 'livetv', 'boxsets', 'channels'];
-
-        folderHtml += result.Items.map(function (i) {
-
-            if (excludeViewTypes.indexOf(i.CollectionType || []) !== -1) {
-                return '';
-            }
-
-            var currentHtml = '';
-
-            var id = 'chkIncludeInLatest' + i.Id;
-
-            var isChecked = user.Configuration.LatestItemsExcludes.indexOf(i.Id) === -1;
-            var checkedHtml = isChecked ? ' checked="checked"' : '';
-
-            currentHtml += '<label>';
-            currentHtml += '<input type="checkbox" is="emby-checkbox" class="chkIncludeInLatest" data-folderid="' + i.Id + '" id="' + id + '"' + checkedHtml + '/>';
-            currentHtml += '<span>' + i.Name + '</span>';
-            currentHtml += '</label>';
-
-            return currentHtml;
-
-        }).join('');
-
-        folderHtml += '</div>';
-
-        context.querySelector('.latestItemsList').innerHTML = folderHtml;
-    }
-
-    function renderViews(page, user, result) {
-
-        var folderHtml = '';
-
-        folderHtml += '<div class="checkboxList">';
-        folderHtml += result.map(function (i) {
-
-            var currentHtml = '';
-
-            var id = 'chkGroupFolder' + i.Id;
-
-            var isChecked = user.Configuration.GroupedFolders.indexOf(i.Id) !== -1;
-
-            var checkedHtml = isChecked ? ' checked="checked"' : '';
-
-            currentHtml += '<label>';
-            currentHtml += '<input type="checkbox" is="emby-checkbox" class="chkGroupFolder" data-folderid="' + i.Id + '" id="' + id + '"' + checkedHtml + '/>';
-            currentHtml += '<span>' + i.Name + '</span>';
-            currentHtml += '</label>';
-
-            return currentHtml;
-
-        }).join('');
-
-        folderHtml += '</div>';
-
-        page.querySelector('.folderGroupList').innerHTML = folderHtml;
-    }
 
     function getLandingScreenOptions(type) {
 
@@ -87,9 +24,19 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
                 name: globalize.translate('sharedcomponents#Favorites'),
                 value: 'favorites'
             });
+
+            list.push({
+                name: globalize.translate('sharedcomponents#Genres'),
+                value: 'genres'
+            });
             list.push({
                 name: globalize.translate('sharedcomponents#Collections'),
                 value: 'collections'
+            });
+
+            list.push({
+                name: globalize.translate('sharedcomponents#Folders'),
+                value: 'folders'
             });
         }
         else if (type === 'tvshows') {
@@ -103,21 +50,27 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
                 name: globalize.translate('sharedcomponents#Suggestions'),
                 value: 'suggestions'
             });
-
-            list.push({
-                name: globalize.translate('sharedcomponents#Latest'),
-                value: 'latest'
-            });
             list.push({
                 name: globalize.translate('sharedcomponents#Favorites'),
                 value: 'favorites'
+            });
+
+            list.push({
+                name: globalize.translate('sharedcomponents#Genres'),
+                value: 'genres'
+            });
+
+            list.push({
+                name: globalize.translate('sharedcomponents#Folders'),
+                value: 'folders'
             });
         }
         else if (type === 'music') {
 
             list.push({
                 name: globalize.translate('sharedcomponents#Suggestions'),
-                value: 'suggestions'
+                value: 'suggestions',
+                isDefault: true
             });
 
             list.push({
@@ -144,6 +97,27 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
                 name: globalize.translate('sharedcomponents#Genres'),
                 value: 'genres'
             });
+
+            list.push({
+                name: globalize.translate('sharedcomponents#Folders'),
+                value: 'folders'
+            });
+        }
+        else if (type === 'livetv') {
+
+            list.push({
+                name: globalize.translate('sharedcomponents#Suggestions'),
+                value: 'suggestions',
+                isDefault: true
+            });
+            list.push({
+                name: globalize.translate('sharedcomponents#Guide'),
+                value: 'guide'
+            });
+            list.push({
+                name: globalize.translate('sharedcomponents#Channels'),
+                value: 'channels'
+            });
         }
 
         return list;
@@ -159,37 +133,6 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
 
             return '<option value="' + optionValue + '"' + selectedHtml + '>' + o.name + '</option>';
         }).join('');
-    }
-
-    function renderLandingScreens(context, user, userSettings, result) {
-
-        var html = '';
-
-        for (var i = 0, length = result.Items.length; i < length; i++) {
-            var folder = result.Items[i];
-
-            if (!(folder.CollectionType === 'movies' || folder.CollectionType === 'tvshows' || folder.CollectionType === 'music')) {
-                continue;
-            }
-
-            html += '<div class="selectContainer">';
-            html += '<select is="emby-select" class="selectLanding" data-folderid="' + folder.Id + '" label="' + folder.Name + '">';
-
-            var userValue = userSettings.get('landing-' + folder.Id);
-
-            html += getLandingScreenOptionsHtml(folder.CollectionType, userValue);
-
-            html += '</select>';
-            html += '</div>';
-        }
-
-        context.querySelector('.landingScreens').innerHTML = html;
-
-        if (html) {
-            context.querySelector('.landingScreensSection').classList.remove('hide');
-        } else {
-            context.querySelector('.landingScreensSection').classList.add('hide');
-        }
     }
 
     function renderViewOrder(context, user, result) {
@@ -246,6 +189,83 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
                 select.value = userValue;
             }
         }
+
+        context.querySelector('.selectTVHomeScreen').value = userSettings.get('tvhome') || '';
+    }
+
+    function getPerLibrarySettingsHtml(item, user, userSettings, apiClient) {
+
+        var html = '';
+
+        var isChecked;
+
+        if (item.Type === 'Channel' || item.CollectionType === 'boxsets' || item.CollectionType === 'playlists') {
+            isChecked = (user.Configuration.MyMediaExcludes || []).indexOf(item.Id) === -1;
+            html += '<div>';
+            html += '<label>';
+            html += '<input type="checkbox" is="emby-checkbox" class="chkIncludeInMyMedia" data-folderid="' + item.Id + '"' + (isChecked ? ' checked="checked"' : '') + '/>';
+            html += '<span>' + globalize.translate('sharedcomponents#DisplayInMyMedia') + '</span>';
+            html += '</label>';
+            html += '</div>';
+        }
+
+        var excludeFromLatest = ['playlists', 'livetv', 'boxsets', 'channels'];
+        if (excludeFromLatest.indexOf(item.CollectionType || '') === -1) {
+
+            isChecked = user.Configuration.LatestItemsExcludes.indexOf(item.Id) === -1;
+            html += '<label class="fldIncludeInLatest">';
+            html += '<input type="checkbox" is="emby-checkbox" class="chkIncludeInLatest" data-folderid="' + item.Id + '"' + (isChecked ? ' checked="checked"' : '') + '/>';
+            html += '<span>' + globalize.translate('sharedcomponents#DisplayInOtherHomeScreenSections') + '</span>';
+            html += '</label>';
+        }
+
+        if (html) {
+
+            html = '<div class="checkboxListContainer">' + html + '</div>';
+        }
+
+        if (item.CollectionType === 'movies' || item.CollectionType === 'tvshows' || item.CollectionType === 'music' || item.CollectionType === 'livetv') {
+
+            var idForLanding = item.CollectionType === 'livetv' ? item.CollectionType : item.Id;
+            html += '<div class="selectContainer">';
+            html += '<select is="emby-select" class="selectLanding" data-folderid="' + idForLanding + '" label="' + globalize.translate('sharedcomponents#LabelDefaultScreen') + '">';
+
+            var userValue = userSettings.get('landing-' + idForLanding);
+
+            html += getLandingScreenOptionsHtml(item.CollectionType, userValue);
+
+            html += '</select>';
+            html += '</div>';
+        }
+
+        if (html) {
+
+            var prefix = '';
+            prefix += '<div class="verticalSection">';
+
+            prefix += '<h2 class="sectionTitle">';
+            prefix += item.Name;
+            prefix += '</h2>';
+
+            html = prefix + html;
+            html += '</div>';
+        }
+
+
+        return html;
+    }
+
+    function renderPerLibrarySettings(context, user, userViews, userSettings, apiClient) {
+
+        var elem = context.querySelector('.perLibrarySettings');
+        var html = '';
+
+        for (var i = 0, length = userViews.length; i < length; i++) {
+
+            html += getPerLibrarySettingsHtml(userViews[i], user, userSettings, apiClient);
+        }
+
+        elem.innerHTML = html;
     }
 
     function loadForm(context, user, userSettings, apiClient) {
@@ -254,15 +274,13 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
 
         updateHomeSectionValues(context, userSettings);
 
-        var promise1 = apiClient.getUserViews({}, user.Id);
-        var promise2 = apiClient.getJSON(apiClient.getUrl("Users/" + user.Id + "/GroupingOptions"));
+        var promise1 = apiClient.getUserViews({ IncludeHidden: true }, user.Id);
 
-        Promise.all([promise1, promise2]).then(function (responses) {
+        Promise.all([promise1]).then(function (responses) {
 
-            renderViews(context, user, responses[1]);
-            renderLatestItems(context, user, responses[0]);
             renderViewOrder(context, user, responses[0]);
-            renderLandingScreens(context, user, userSettings, responses[0]);
+
+            renderPerLibrarySettings(context, user, responses[0].Items, userSettings, apiClient);
 
             loading.hide();
         });
@@ -344,7 +362,7 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
             return i.getAttribute('data-folderid');
         });
 
-        user.Configuration.GroupedFolders = getCheckboxItems(".chkGroupFolder", context, true).map(function (i) {
+        user.Configuration.MyMediaExcludes = getCheckboxItems(".chkIncludeInMyMedia", context, false).map(function (i) {
 
             return i.getAttribute('data-folderid');
         });
@@ -357,6 +375,8 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
         }
 
         user.Configuration.OrderedViews = orderedViews;
+
+        userSettingsInstance.set('tvhome', context.querySelector('.selectTVHomeScreen').value);
 
         userSettingsInstance.set('homesection0', context.querySelector('#selectHomeSection1').value);
         userSettingsInstance.set('homesection1', context.querySelector('#selectHomeSection2').value);
@@ -418,6 +438,24 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
         return false;
     }
 
+    function onChange(e) {
+
+        var chkIncludeInMyMedia = dom.parentWithClass(e.target, 'chkIncludeInMyMedia');
+        if (!chkIncludeInMyMedia) {
+            return;
+        }
+
+        var section = dom.parentWithClass(chkIncludeInMyMedia, 'verticalSection');
+        var fldIncludeInLatest = section.querySelector('.fldIncludeInLatest');
+        if (fldIncludeInLatest) {
+            if (chkIncludeInMyMedia.checked) {
+                fldIncludeInLatest.classList.remove('hide');
+            } else {
+                fldIncludeInLatest.classList.add('hide');
+            }
+        }
+    }
+
     function embed(options, self) {
 
         require(['text!./homescreensettings.template.html'], function (template) {
@@ -430,12 +468,19 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
 
             options.element.querySelector('.viewOrderList').addEventListener('click', onSectionOrderListClick);
             options.element.querySelector('form').addEventListener('submit', onSubmit.bind(self));
+            options.element.addEventListener('change', onChange);
 
             if (options.enableSaveButton) {
                 options.element.querySelector('.btnSave').classList.remove('hide');
             }
 
-            self.loadData();
+            if (layoutManager.tv) {
+                options.element.querySelector('.selectTVHomeScreenContainer').classList.remove('hide');
+            } else {
+                options.element.querySelector('.selectTVHomeScreenContainer').classList.add('hide');
+            }
+
+            self.loadData(options.autoFocus);
         });
     }
 
@@ -446,7 +491,7 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
         embed(options, this);
     }
 
-    HomeScreenSettings.prototype.loadData = function () {
+    HomeScreenSettings.prototype.loadData = function (autoFocus) {
 
         var self = this;
         var context = self.options.element;
@@ -464,6 +509,10 @@ define(['require', 'globalize', 'loading', 'connectionManager', 'homeSections', 
                 self.dataLoaded = true;
 
                 loadForm(context, user, userSettings, apiClient);
+
+                if (autoFocus) {
+                    focusManager.autoFocus(context);
+                }
             });
         });
     };

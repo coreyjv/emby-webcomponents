@@ -57,14 +57,9 @@ define(['appSettings', 'browser', 'events'], function (appSettings, browser, eve
         return false;
     }
 
-    function enableHlsJsPlayer(runTimeTicks, mediaType) {
+    function enableHlsJsPlayer(runTimeTicks, mediaType, hasHlsTextTracks) {
 
         if (window.MediaSource == null) {
-            return false;
-        }
-
-        // hls.js is only in beta. needs more testing.
-        if (browser.iOS) {
             return false;
         }
 
@@ -80,15 +75,22 @@ define(['appSettings', 'browser', 'events'], function (appSettings, browser, eve
                 return true;
             }
 
-            if (browser.edge && mediaType === 'Video') {
-                //return true;
-            }
-
             // simple playback should use the native support
             if (runTimeTicks) {
-                //if (!browser.edge) {
-                return false;
+
+                if (mediaType === 'Audio') {
+                    return false;
+                }
+
+                // allow hlsjs for video due to vtt in hls subtitle support
+                //if (!hasHlsTextTracks) {
+                //    return false;
                 //}
+
+                // already supports vtt in hls
+                if (browser.edge || browser.web0s || browser.chromecast) {
+                    return false;
+                }
             }
 
             //return false;
@@ -155,9 +157,9 @@ define(['appSettings', 'browser', 'events'], function (appSettings, browser, eve
         return false;
     }
 
-    function setCurrentTimeIfNeeded(element, seconds) {
+    function setCurrentTimeIfNeeded(element, seconds, allowance) {
 
-        if (Math.abs(element.currentTime || 0, seconds) <= 1) {
+        if (Math.abs((element.currentTime || 0) - seconds) >= allowance) {
             element.currentTime = seconds;
         }
     }
@@ -171,14 +173,11 @@ define(['appSettings', 'browser', 'events'], function (appSettings, browser, eve
 
             // Appending #t=xxx to the query string doesn't seem to work with HLS
             // For plain video files, not all browsers support it either
-            var delay = browser.safari ? 2500 : 0;
-            if (delay) {
-                setTimeout(function () {
-                    setCurrentTimeIfNeeded(element, seconds);
-                }, delay);
-            } else {
-                setCurrentTimeIfNeeded(element, seconds);
-            }
+            setCurrentTimeIfNeeded(element, seconds, 5);
+
+            setTimeout(function () {
+                setCurrentTimeIfNeeded(element, seconds, 10);
+            }, 2500);
         }
     }
 
@@ -188,20 +187,12 @@ define(['appSettings', 'browser', 'events'], function (appSettings, browser, eve
 
             return Windows.Storage.StorageFile.getFileFromPathAsync(options.url).then(function (file) {
 
-                var playlist = new Windows.Media.Playback.MediaPlaybackList();
-
-                var source1 = Windows.Media.Core.MediaSource.createFromStorageFile(file);
-                var startTime = (options.playerStartPositionTicks || 0) / 10000;
-                playlist.items.append(new Windows.Media.Playback.MediaPlaybackItem(source1, startTime));
-                elem.src = URL.createObjectURL(playlist, { oneTimeOnly: true });
+                elem.src = URL.createObjectURL(file, { oneTimeOnly: true });
                 return Promise.resolve();
             });
-
-        } else {
-
-            elem.src = src;
         }
 
+        elem.src = src;
         return Promise.resolve();
     }
 
@@ -399,11 +390,6 @@ define(['appSettings', 'browser', 'events'], function (appSettings, browser, eve
         destroyFlvPlayer(instance);
         destroyShakaPlayer(instance);
         destroyCastPlayer(instance);
-
-        if (instance.originalDocumentTitle) {
-            document.title = instance.originalDocumentTitle;
-            instance.originalDocumentTitle = null;
-        }
 
         var stopInfo = {
             src: instance._currentSrc

@@ -1,4 +1,4 @@
-﻿define(['connectionManager', 'cardBuilder', 'registrationServices', 'appSettings', 'dom', 'apphost', 'layoutManager', 'imageLoader', 'globalize', 'itemShortcuts', 'itemHelper', 'appRouter', 'emby-button', 'paper-icon-button-light', 'emby-itemscontainer', 'emby-scroller', 'emby-linkbutton', 'css!./homesections'], function (connectionManager, cardBuilder, registrationServices, appSettings, dom, appHost, layoutManager, imageLoader, globalize, itemShortcuts, itemHelper, appRouter) {
+﻿define(['browser', 'connectionManager', 'cardBuilder', 'registrationServices', 'appSettings', 'dom', 'apphost', 'layoutManager', 'imageLoader', 'globalize', 'itemShortcuts', 'itemHelper', 'appRouter', 'emby-button', 'paper-icon-button-light', 'emby-itemscontainer', 'emby-scroller', 'emby-linkbutton', 'css!./homesections'], function (browser, connectionManager, cardBuilder, registrationServices, appSettings, dom, appHost, layoutManager, imageLoader, globalize, itemShortcuts, itemHelper, appRouter) {
     'use strict';
 
     function getDefaultSection(index) {
@@ -44,33 +44,31 @@
 
     function loadSections(elem, apiClient, user, userSettings) {
 
-        return getUserViews(apiClient, user.Id).then(function (userViews) {
+        var i, length;
+        var sectionCount = 7;
 
-            var i, length;
-            var sectionCount = 7;
+        var html = '';
+        for (i = 0, length = sectionCount; i < length; i++) {
 
-            var html = '';
-            for (i = 0, length = sectionCount; i < length; i++) {
+            html += '<div class="verticalSection section' + i + '"></div>';
+        }
 
-                html += '<div class="verticalSection section' + i + '"></div>';
-            }
+        elem.innerHTML = html;
+        elem.classList.add('homeSectionsContainer');
 
-            elem.innerHTML = html;
-            elem.classList.add('homeSectionsContainer');
+        var promises = [];
+        var sections = getAllSectionsToShow(userSettings, sectionCount);
 
-            var promises = [];
-            var sections = getAllSectionsToShow(userSettings, sectionCount);
+        for (i = 0, length = sections.length; i < length; i++) {
 
-            for (i = 0, length = sections.length; i < length; i++) {
+            promises.push(loadSection(elem, apiClient, user, userSettings, sections, i));
+        }
 
-                promises.push(loadSection(elem, apiClient, user, userSettings, userViews, sections, i));
-            }
+        return Promise.all(promises).then(function () {
 
-            return Promise.all(promises).then(function () {
-
-                return resume(elem, {
-                    refresh: true
-                });
+            return resume(elem, {
+                refresh: true,
+                returnPromise: false
             });
         });
     }
@@ -104,13 +102,22 @@
 
         var elems = elem.querySelectorAll('.itemsContainer');
         var i, length;
+        var promises = [];
 
         for (i = 0, length = elems.length; i < length; i++) {
-            elems[i].resume(options);
+            promises.push(elems[i].resume(options));
         }
+
+        var promise = Promise.all(promises);
+
+        if (!options || options.returnPromise !== false) {
+            return promise;
+        }
+
+        return promises[0];
     }
 
-    function loadSection(page, apiClient, user, userSettings, userViews, allSections, index) {
+    function loadSection(page, apiClient, user, userSettings, allSections, index) {
 
         var section = allSections[index];
         var userId = user.Id;
@@ -118,13 +125,13 @@
         var elem = page.querySelector('.section' + index);
 
         if (section === 'latestmedia') {
-            loadRecentlyAdded(elem, apiClient, user, userViews);
+            return loadRecentlyAdded(elem, apiClient, user);
         }
         else if (section === 'librarytiles' || section === 'smalllibrarytiles' || section === 'smalllibrarytiles-automobile' || section === 'librarytiles-automobile') {
-            return loadLibraryTiles(elem, apiClient, user, userSettings, 'smallBackdrop', userViews, allSections);
+            return loadLibraryTiles(elem, apiClient, user, userSettings, 'smallBackdrop', allSections);
         }
         else if (section === 'librarybuttons') {
-            return loadlibraryButtons(elem, apiClient, user, userSettings, userViews, allSections);
+            return loadlibraryButtons(elem, apiClient, user, userSettings, allSections);
         }
         else if (section === 'resume') {
             loadResumeVideo(elem, apiClient, userId);
@@ -140,9 +147,6 @@
         }
         else if (section === 'onnow' || section === 'livetv') {
             return loadOnNow(elem, apiClient, user);
-        }
-        else if (section === 'latesttvrecordings') {
-            loadLatestLiveTvRecordings(elem, false, apiClient, userId);
         }
         else {
 
@@ -182,11 +186,11 @@
         var html = "";
 
         html += '<div class="verticalSection verticalSection-extrabottompadding">';
-        html += '<div class="sectionTitleContainer">';
+        html += '<div class="sectionTitleContainer sectionTitleContainer-cards">';
         html += '<h2 class="sectionTitle sectionTitle-cards padded-left">' + globalize.translate('sharedcomponents#HeaderMyMedia') + '</h2>';
 
         if (!layoutManager.tv) {
-            html += '<button type="button" is="paper-icon-button-light" class="sectionTitleIconButton btnHomeScreenSettings"><i class="md-icon">&#xE8B8;</i></button>';
+            html += '<button type="button" is="paper-icon-button-light" class="sectionTitleIconButton btnHomeScreenSettings"><i class="md-icon">&#xE5D3;</i></button>';
         }
 
         html += '</div>';
@@ -202,47 +206,47 @@
 
             switch (item.CollectionType) {
                 case "movies":
-                    icon = "local_movies";
+                    icon = "&#xE54D;";
                     break;
                 case "music":
-                    icon = "library_music";
+                    icon = "&#xE030;";
                     break;
                 case "photos":
-                    icon = "photo";
+                    icon = "&#xE410;";
                     break;
                 case "livetv":
-                    icon = "live_tv";
+                    icon = "&#xE639;";
                     break;
                 case "tvshows":
-                    icon = "live_tv";
+                    icon = "&#xE639;";
                     break;
                 case "games":
-                    icon = "folder";
+                    icon = "&#xE2C7;";
                     break;
                 case "trailers":
-                    icon = "local_movies";
+                    icon = "&#xE54D;";
                     break;
                 case "homevideos":
-                    icon = "video_library";
+                    icon = "&#xE04A;";
                     break;
                 case "musicvideos":
-                    icon = "video_library";
+                    icon = "&#xE04A;";
                     break;
                 case "books":
-                    icon = "folder";
+                    icon = "&#xE2C7;";
                     break;
                 case "channels":
-                    icon = "folder";
+                    icon = "&#xE2C7;";
                     break;
                 case "playlists":
-                    icon = "folder";
+                    icon = "&#xE2C7;";
                     break;
                 default:
-                    icon = "folder";
+                    icon = "&#xE2C7;";
                     break;
             }
 
-            html += '<a is="emby-linkbutton" href="' + appRouter.getRouteUrl(item) + '" class="raised homeLibraryButton"><i class="md-icon">' + icon + '</i><span>' + item.Name + '</span></a>';
+            html += '<a is="emby-linkbutton" href="' + appRouter.getRouteUrl(item) + '" class="raised homeLibraryButton"><i class="md-icon">' + icon + '</i><span style="margin-left:.5em;">' + item.Name + '</span></a>';
         }
 
         html += '</div>';
@@ -251,31 +255,39 @@
         return html;
     }
 
-    function loadlibraryButtons(elem, apiClient, user, userSettings, userViews) {
+    function loadlibraryButtons(elem, apiClient, user, userSettings) {
 
-        return Promise.all([getAppInfo(apiClient), getDownloadsSectionHtml(apiClient, user, userSettings)]).then(function (responses) {
+        return getUserViews(apiClient, user.Id).then(function (userViews) {
 
-            var infoHtml = responses[0];
-            var downloadsHtml = responses[1];
+            return getDownloadsSectionHtml(apiClient, user, userSettings).then(function (downloadsHtml) {
 
-            elem.classList.remove('verticalSection');
+                elem.classList.remove('verticalSection');
+                elem.innerHTML = getLibraryButtonsHtml(userViews) + downloadsHtml + '<div class="verticalSection appInfoSection hide"></div>';
 
-            var html = getLibraryButtonsHtml(userViews);
+                bindHomeScreenSettingsIcon(elem, apiClient, user.Id, userSettings);
 
-            elem.innerHTML = html + downloadsHtml + infoHtml;
+                imageLoader.lazyChildren(elem);
 
-            bindHomeScreenSettingsIcon(elem, apiClient, user.Id, userSettings);
+                getAppInfo(apiClient).then(function (infoHtml) {
 
-            if (infoHtml) {
-                bindAppInfoEvents(elem);
-            }
-            imageLoader.lazyChildren(elem);
+                    if (infoHtml) {
+
+                        elem = elem.querySelector('.appInfoSection');
+                        elem.innerHTML = infoHtml;
+                        elem.classList.remove('hide');
+
+                        bindAppInfoEvents(elem);
+                        imageLoader.lazyChildren(elem);
+                    }
+
+                });
+            });
         });
     }
 
     function bindAppInfoEvents(elem) {
 
-        elem.querySelector('.appInfoSection').addEventListener('click', function (e) {
+        elem.addEventListener('click', function (e) {
 
             if (dom.parentWithClass(e.target, 'card')) {
                 registrationServices.showPremiereInfo();
@@ -292,6 +304,10 @@
     }
 
     function getAppInfo(apiClient) {
+
+        if (browser.orsay) {
+            return Promise.resolve('');
+        }
 
         var frequency = 172800000;
 
@@ -352,9 +368,8 @@
 
         var html = '';
         html += '<div class="verticalSection appInfoSection">';
-        html += '<div class="sectionTitleContainer">';
+        html += '<div class="sectionTitleContainer sectionTitleContainer-cards">';
         html += '<h2 class="sectionTitle sectionTitle-cards padded-left">Discover Emby Theater</h2>';
-        html += '<button is="paper-icon-button-light" class="sectionTitleButton" onclick="this.parentNode.parentNode.remove();" class="autoSize"><i class="md-icon">close</i></button>';
         html += '</div>';
 
         var nameText = 'Emby Theater';
@@ -374,9 +389,8 @@
 
         var html = '';
         html += '<div class="verticalSection appInfoSection">';
-        html += '<div class="sectionTitleContainer">';
+        html += '<div class="sectionTitleContainer sectionTitleContainer-cards">';
         html += '<h2 class="sectionTitle sectionTitle-cards padded-left">Discover Emby Premiere</h2>';
-        html += '<button is="paper-icon-button-light" class="sectionTitleButton" onclick="this.parentNode.parentNode.remove();" class="autoSize"><i class="md-icon">close</i></button>';
         html += '</div>';
 
         html += '<div class="padded-left padded-right">';
@@ -429,33 +443,25 @@
         };
     }
 
-    function getLatestItemsHtmlFn(itemType, viewType) {
+    function getLatestItemsHtmlFn(itemType, viewType, enableTvPosters) {
 
         return function (items) {
-
-            var shape = itemType === 'Channel' || viewType === 'movies' ?
-                getPortraitShape() :
-                viewType === 'music' ?
-                    getSquareShape() :
-                    getThumbShape();
 
             var cardLayout = false;
 
             return cardBuilder.getCardsHtml({
                 items: items,
-                shape: shape,
-                preferThumb: viewType !== 'movies' && itemType !== 'Channel' && viewType !== 'music' ? 'auto' : null,
+                shape: !enableTvPosters && viewType === 'tvshows' ? 'overflowBackdrop' : 'autooverflow',
+                preferThumb: 'auto',
                 showUnplayedIndicator: false,
                 showChildCountIndicator: true,
                 context: 'home',
                 overlayText: false,
-                centerText: !cardLayout,
+                centerText: true,
                 overlayPlayButton: viewType !== 'photos',
-                allowBottomPadding: !enableScrollX() && !cardLayout,
-                cardLayout: cardLayout,
                 showTitle: viewType !== 'photos',
                 showYear: viewType === 'movies' || viewType === 'tvshows' || !viewType,
-                showParentTitle: viewType === 'music' || viewType === 'tvshows' || !viewType || (cardLayout && (viewType === 'tvshows')),
+                showParentTitle: viewType === 'music' || viewType === 'tvshows' || !viewType,
                 lines: 2
             });
         };
@@ -464,7 +470,7 @@
     function renderLatestSection(elem, apiClient, user, parent) {
 
         var html = '';
-        html += '<div class="sectionTitleContainer padded-left">';
+        html += '<div class="sectionTitleContainer sectionTitleContainer-cards padded-left">';
         if (!layoutManager.tv) {
 
             html += '<a is="emby-linkbutton" href="' + appRouter.getRouteUrl(parent, {
@@ -498,36 +504,39 @@
 
         var itemsContainer = elem.querySelector('.itemsContainer');
         itemsContainer.fetchData = getFetchLatestItemsFn(apiClient.serverId(), parent.Id, parent.CollectionType);
-        itemsContainer.getItemsHtml = getLatestItemsHtmlFn(parent.Type, parent.CollectionType);
+        itemsContainer.getItemsHtml = getLatestItemsHtmlFn(parent.Type, parent.CollectionType, apiClient.isMinServerVersion('3.6'));
         itemsContainer.parentContainer = elem;
 
     }
 
-    function loadRecentlyAdded(elem, apiClient, user, userViews) {
+    function loadRecentlyAdded(elem, apiClient, user) {
 
-        elem.classList.remove('verticalSection');
+        return getUserViews(apiClient, user.Id).then(function (userViews) {
 
-        var excludeViewTypes = ['playlists', 'livetv', 'boxsets', 'channels'];
+            elem.classList.remove('verticalSection');
 
-        for (var i = 0, length = userViews.length; i < length; i++) {
+            var excludeViewTypes = ['playlists', 'livetv', 'boxsets', 'channels'];
 
-            var item = userViews[i];
+            for (var i = 0, length = userViews.length; i < length; i++) {
 
-            if (user.Configuration.LatestItemsExcludes.indexOf(item.Id) !== -1) {
-                continue;
+                var item = userViews[i];
+
+                if (user.Configuration.LatestItemsExcludes.indexOf(item.Id) !== -1) {
+                    continue;
+                }
+
+                if (excludeViewTypes.indexOf(item.CollectionType || []) !== -1) {
+                    continue;
+                }
+
+                var frag = document.createElement('div');
+                frag.classList.add('verticalSection');
+                frag.classList.add('hide');
+                elem.appendChild(frag);
+
+                renderLatestSection(frag, apiClient, user, item);
             }
-
-            if (excludeViewTypes.indexOf(item.CollectionType || []) !== -1) {
-                continue;
-            }
-
-            var frag = document.createElement('div');
-            frag.classList.add('verticalSection');
-            frag.classList.add('hide');
-            elem.appendChild(frag);
-
-            renderLatestSection(frag, apiClient, user, item);
-        }
+        });
     }
 
     function getRequirePromise(deps) {
@@ -586,7 +595,7 @@
 
             html += '<div class="verticalSection">';
 
-            html += '<div class="sectionTitleContainer padded-left">';
+            html += '<div class="sectionTitleContainer sectionTitleContainer-cards padded-left">';
 
             if (!layoutManager.tv) {
 
@@ -611,6 +620,7 @@
             html += cardBuilder.getCardsHtml({
                 items: items,
                 preferThumb: 'auto',
+                inheritThumb: false,
                 shape: 'autooverflow',
                 overlayText: false,
                 showTitle: true,
@@ -633,65 +643,76 @@
         });
     }
 
-    function loadLibraryTiles(elem, apiClient, user, userSettings, shape, userViews, allSections) {
+    function loadLibraryTiles(elem, apiClient, user, userSettings, shape, allSections) {
 
-        elem.classList.remove('verticalSection');
+        return getUserViews(apiClient, user.Id).then(function (userViews) {
 
-        var html = '';
+            elem.classList.remove('verticalSection');
 
-        var scrollX = !layoutManager.desktop;
+            var html = '';
 
-        if (userViews.length) {
+            var scrollX = !layoutManager.desktop;
 
-            html += '<div class="verticalSection">';
+            if (userViews.length) {
 
-            html += '<div class="sectionTitleContainer">';
-            html += '<h2 class="sectionTitle sectionTitle-cards padded-left">' + globalize.translate('sharedcomponents#HeaderMyMedia') + '</h2>';
+                html += '<div class="verticalSection">';
 
-            if (!layoutManager.tv) {
-                html += '<button type="button" is="paper-icon-button-light" class="sectionTitleIconButton btnHomeScreenSettings"><i class="md-icon">&#xE8B8;</i></button>';
-            }
+                html += '<div class="sectionTitleContainer sectionTitleContainer-cards">';
+                html += '<h2 class="sectionTitle sectionTitle-cards padded-left">' + globalize.translate('sharedcomponents#HeaderMyMedia') + '</h2>';
 
-            html += '</div>';
+                if (!layoutManager.tv) {
+                    html += '<button type="button" is="paper-icon-button-light" class="sectionTitleIconButton btnHomeScreenSettings"><i class="md-icon">&#xE5D3;</i></button>';
+                }
 
-            if (scrollX) {
-                html += '<div is="emby-scroller" class="padded-top-focusscale padded-bottom-focusscale" data-mousewheel="false" data-centerfocus="true"><div is="emby-itemscontainer" class="scrollSlider focuscontainer-x padded-left padded-right">';
-            } else {
-                html += '<div is="emby-itemscontainer" class="itemsContainer padded-left padded-right vertical-wrap focuscontainer-x">';
-            }
+                html += '</div>';
 
-            html += cardBuilder.getCardsHtml({
-                items: userViews,
-                shape: scrollX ? 'overflowSmallBackdrop' : shape,
-                showTitle: true,
-                centerText: true,
-                overlayText: false,
-                lazy: true,
-                transition: false,
-                allowBottomPadding: !scrollX
-            });
+                if (scrollX) {
+                    html += '<div is="emby-scroller" class="padded-top-focusscale padded-bottom-focusscale" data-mousewheel="false" data-centerfocus="true"><div is="emby-itemscontainer" class="scrollSlider focuscontainer-x padded-left padded-right">';
+                } else {
+                    html += '<div is="emby-itemscontainer" class="itemsContainer padded-left padded-right vertical-wrap focuscontainer-x">';
+                }
 
-            if (scrollX) {
+                html += cardBuilder.getCardsHtml({
+                    items: userViews,
+                    shape: scrollX ? 'overflowSmallBackdrop' : shape,
+                    showTitle: true,
+                    centerText: true,
+                    overlayText: false,
+                    lazy: true,
+                    transition: false,
+                    allowBottomPadding: !scrollX,
+                    hoverPlayButton: false
+                });
+
+                if (scrollX) {
+                    html += '</div>';
+                }
+                html += '</div>';
                 html += '</div>';
             }
-            html += '</div>';
-            html += '</div>';
-        }
 
-        return Promise.all([getAppInfo(apiClient), getDownloadsSectionHtml(apiClient, user, userSettings)]).then(function (responses) {
+            return getDownloadsSectionHtml(apiClient, user, userSettings).then(function (downloadsHtml) {
 
-            var infoHtml = responses[0];
-            var downloadsHtml = responses[1];
+                elem.innerHTML = html + downloadsHtml + '<div class="verticalSection appInfoSection hide"></div>';
 
-            elem.innerHTML = html + downloadsHtml + infoHtml;
+                bindHomeScreenSettingsIcon(elem, apiClient, user.Id, userSettings);
 
-            bindHomeScreenSettingsIcon(elem, apiClient, user.Id, userSettings);
+                imageLoader.lazyChildren(elem);
 
-            if (infoHtml) {
-                bindAppInfoEvents(elem);
-            }
+                getAppInfo(apiClient).then(function (infoHtml) {
 
-            imageLoader.lazyChildren(elem);
+                    if (infoHtml) {
+
+                        elem = elem.querySelector('.appInfoSection');
+                        elem.innerHTML = infoHtml;
+                        elem.classList.remove('hide');
+
+                        bindAppInfoEvents(elem);
+                        imageLoader.lazyChildren(elem);
+                    }
+
+                });
+            });
         });
     }
 
@@ -913,7 +934,6 @@
             showParentTitleOrTitle: true,
             showTitle: true,
             centerText: true,
-            coverImage: true,
             overlayText: false,
             allowBottomPadding: !enableScrollX(),
             showAirTime: true,
@@ -946,15 +966,14 @@
 
         var userId = user.Id;
 
-        promises.push(apiClient.getLiveTvRecommendedPrograms({
+        promises.push(apiClient.getLiveTvChannels({
 
             userId: apiClient.getCurrentUserId(),
-            IsAiring: true,
             limit: 1,
             ImageTypeLimit: 1,
-            EnableImageTypes: "Primary,Thumb,Backdrop",
             EnableTotalRecordCount: false,
-            Fields: "ChannelInfo,PrimaryImageAspectRatio"
+            EnableImages: false,
+            EnableUserData: false
 
         }));
 
@@ -972,9 +991,9 @@
                 elem.classList.remove('verticalSection');
 
                 html += '<div class="verticalSection">';
-                html += '<div class="sectionTitleContainer padded-left">';
+                html += '<div class="sectionTitleContainer sectionTitleContainer-cards padded-left">';
 
-                html += '<h2 class="sectionTitle">' + globalize.translate('sharedcomponents#LiveTV') + '</h2>';
+                html += '<h2 class="sectionTitle sectionTitle-cards">' + globalize.translate('sharedcomponents#LiveTV') + '</h2>';
 
                 html += '</div>';
 
@@ -986,26 +1005,27 @@
                     html += '<div class="padded-left padded-right padded-top focuscontainer-x">';
                 }
 
-                html += '<a style="margin:0;padding:.9em 1em;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('livetv', {
+                html += '<a style="margin-left:.8em;margin-right:0;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('livetv', {
 
-                    serverId: apiClient.serverId()
+                    serverId: apiClient.serverId(),
+                    section: 'programs'
 
                 }) + '" class="raised"><span>' + globalize.translate('sharedcomponents#Programs') + '</span></a>';
 
-                html += '<a style="margin:0 0 0 1em;padding:.9em 1em;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('livetv', {
+                html += '<a style="margin-left:.5em;margin-right:0;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('livetv', {
 
                     serverId: apiClient.serverId(),
                     section: 'guide'
 
                 }) + '" class="raised"><span>' + globalize.translate('sharedcomponents#Guide') + '</span></a>';
 
-                html += '<a style="margin:0 0 0 1em;padding:.9em 1em;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('recordedtv', {
+                html += '<a style="margin-left:.5em;margin-right:0;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('recordedtv', {
 
                     serverId: apiClient.serverId()
 
                 }) + '" class="raised"><span>' + globalize.translate('sharedcomponents#Recordings') + '</span></a>';
 
-                html += '<a style="margin:0 0 0 1em;padding:.9em 1em;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('livetv', {
+                html += '<a style="margin-left:.5em;margin-right:0;" is="emby-linkbutton" href="' + appRouter.getRouteUrl('livetv', {
 
                     serverId: apiClient.serverId(),
                     section: 'dvrschedule'
@@ -1022,7 +1042,7 @@
                 html += '</div>';
 
                 html += '<div class="verticalSection">';
-                html += '<div class="sectionTitleContainer padded-left">';
+                html += '<div class="sectionTitleContainer sectionTitleContainer-cards padded-left">';
 
                 if (!layoutManager.tv) {
 
@@ -1122,7 +1142,7 @@
     function loadNextUp(elem, apiClient, userId) {
 
         var html = '';
-        html += '<div class="sectionTitleContainer padded-left">';
+        html += '<div class="sectionTitleContainer sectionTitleContainer-cards padded-left">';
         if (!layoutManager.tv) {
 
             html += '<a is="emby-linkbutton" href="' + appRouter.getRouteUrl('nextup', {
@@ -1191,7 +1211,6 @@
                 shape: enableScrollX() ? 'autooverflow' : 'auto',
                 showTitle: true,
                 showParentTitle: true,
-                coverImage: true,
                 lazy: true,
                 showDetailsMenu: true,
                 centerText: true,
@@ -1217,7 +1236,7 @@
 
         var html = '';
 
-        html += '<div class="sectionTitleContainer">';
+        html += '<div class="sectionTitleContainer sectionTitleContainer-cards">';
         html += '<h2 class="sectionTitle sectionTitle-cards padded-left">' + title + '</h2>';
         if (!layoutManager.tv) {
             //html += '<a href="livetv.html?tab=3" class="clearLink" style="margin-left:2em;"><button is="emby-button" type="button" class="raised more mini"><span>' + globalize.translate('sharedcomponents#More') + '</span></button></a>';

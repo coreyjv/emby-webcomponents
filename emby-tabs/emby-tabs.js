@@ -1,4 +1,4 @@
-﻿define(['dom', 'scroller', 'browser', 'layoutManager', 'focusManager', 'registerElement', 'css!./emby-tabs', 'scrollStyles'], function (dom, scroller, browser, layoutManager, focusManager) {
+﻿define(['dom', 'scroller', 'browser', 'layoutManager', 'focusManager', 'css!./emby-tabs', 'scrollStyles'], function (dom, scroller, browser, layoutManager, focusManager) {
     'use strict';
 
     var EmbyTabs = Object.create(HTMLDivElement.prototype);
@@ -111,7 +111,7 @@
             triggerBeforeTabChange(tabs, index, previousIndex);
 
             // If toCenter is called syncronously within the click event, it sometimes ends up canceling it
-            setTimeout(function () {
+            //setTimeout(function () {
 
                 tabs.selectedTabIndex = index;
 
@@ -121,7 +121,7 @@
                         previousIndex: previousIndex
                     }
                 }));
-            }, 120);
+            //}, 120);
 
             if (tabs.scroller) {
                 tabs.scroller.toCenter(tabButton, false);

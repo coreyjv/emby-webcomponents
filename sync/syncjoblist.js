@@ -1,10 +1,18 @@
 ﻿define(['serverNotifications', 'events', 'loading', 'connectionManager', 'imageLoader', 'dom', 'globalize', 'registrationServices', 'layoutManager', 'listViewStyle'], function (serverNotifications, events, loading, connectionManager, imageLoader, dom, globalize, registrationServices, layoutManager) {
     'use strict';
 
-    function onSyncJobsUpdated(e, apiClient, data) {
-
+    function onSyncJobCreated(e, apiClient, data) {
         var listInstance = this;
-        renderList(listInstance, data, apiClient);
+        fetchData(listInstance);
+    }
+    function onSyncJobUpdated(e, apiClient, data) {
+        var listInstance = this;
+
+        refreshJob(listInstance, data);
+    }
+    function onSyncJobCancelled(e, apiClient, data) {
+        var listInstance = this;
+        fetchData(listInstance);
     }
 
     function refreshList(listInstance, jobs) {
@@ -44,7 +52,7 @@
 
                 }).then(function () {
 
-                    if (listInstance.options.isLocalSync) {
+                    if (listInstance.options.mode === 'download') {
                         syncNow();
                     }
 
@@ -75,7 +83,7 @@
 
         var html = globalize.translate('sharedcomponents#SyncJobItemStatus' + status);
 
-        if (job.Status === 'Transferring' || job.Status === 'Converting' || job.Status === 'Completed') {
+        if (job.Status === 'Transferring' || job.Status === 'Converting') {
             html += ' ';
 
             var progress = job.Progress || 0;
@@ -95,7 +103,7 @@
         var tagName = layoutManager.tv ? 'button' : 'div';
         var typeAttribute = tagName === 'button' ? ' type="button"' : '';
 
-        var listItemClass = 'listItem listItem-shaded';
+        var listItemClass = 'listItem listItem-border';
 
         if (layoutManager.tv) {
             listItemClass += ' listItem-button listItem-focusscale';
@@ -103,7 +111,7 @@
             listItemClass += ' btnJobMenu';
         }
 
-        var canEdit = (job.ItemCount || 1) > 1 || job.Status === 'Queued';
+        var canEdit = true; //// (job.ItemCount || 1) > 1 || job.Status === 'Queued';
         html += '<' + tagName + typeAttribute + ' class="' + listItemClass + '" data-canedit="' + canEdit + '" data-id="' + job.Id + '" data-status="' + job.Status + '">';
 
         var imgUrl;
@@ -137,7 +145,7 @@
         textLines.push(name);
 
         if (job.ItemCount === 1) {
-            //textLines.push(globalize.translate('sharedcomponents#ValueOneItem'));
+            textLines.push(globalize.translate('sharedcomponents#ValueOneItem'));
         } else {
             textLines.push(globalize.translate('sharedcomponents#ItemCount', job.ItemCount));
         }
@@ -166,7 +174,7 @@
         if (!layoutManager.tv) {
 
             if (canEdit) {
-                html += '<button type="button" is="paper-icon-button-light" class="btnJobMenu listItemButton"><i class="md-icon">more_vert</i></button>';
+                html += '<button type="button" is="paper-icon-button-light" class="btnJobMenu listItemButton"><i class="md-icon">more_horiz</i></button>';
             } else {
                 html += '<button type="button" is="paper-icon-button-light" class="btnCancelJob listItemButton"><i class="md-icon">delete</i></button>';
             }
@@ -189,8 +197,8 @@
         var html = '';
         var lastTargetName = '';
 
-        var isLocalSync = listInstance.options.isLocalSync;
-        var showTargetName = !isLocalSync;
+        var mode = listInstance.options.mode;
+        var showTargetName = mode !== 'download';
 
         var hasOpenSection = false;
 
@@ -213,7 +221,7 @@
                     html += '<div class="verticalSection">';
                     html += '<div class="sectionTitleContainer">';
 
-                    html += '<h1 class="sectionTitle">' + targetName + '</h1>';
+                    html += '<h2 class="sectionTitle">' + targetName + '</h2>';
 
                     html += '</div>';
                     html += '<div class="itemsContainer vertical-list paperList">';
@@ -232,7 +240,7 @@
         var elem = listInstance.options.element.querySelector('.syncJobListContent');
 
         if (!html) {
-            if (isLocalSync) {
+            if (mode === 'download') {
                 html = '<div style="padding:1em .25em;">' + globalize.translate('sharedcomponents#MessageNoDownloadsFound') + '</div>';
             } else {
                 html = '<div style="padding:1em .25em;">' + globalize.translate('sharedcomponents#MessageNoSyncJobsFound') + '</div>';
@@ -256,7 +264,7 @@
             options.UserId = listInstance.options.userId;
         }
 
-        if (listInstance.options.isLocalSync) {
+        if (listInstance.options.mode === 'download') {
             options.TargetId = apiClient.deviceId();
         }
 
@@ -265,30 +273,6 @@
             renderList(listInstance, response.Items, apiClient);
             loading.hide();
         });
-    }
-
-    function startListening(listInstance) {
-
-        var startParams = "0,1500";
-
-        var apiClient = getApiClient(listInstance);
-
-        if (listInstance.options.userId) {
-            startParams += "," + listInstance.options.userId;
-        }
-        if (listInstance.options.isLocalSync) {
-            startParams += "," + apiClient.deviceId();
-        } else if (listInstance.options.enableRemoteSyncManagement === false) {
-            startParams += ",true";
-        }
-
-        apiClient.sendMessage("SyncJobsStart", startParams);
-    }
-
-    function stopListening(listInstance) {
-
-        var apiClient = getApiClient(listInstance);
-        apiClient.sendMessage("SyncJobsStop", "");
     }
 
     function getApiClient(listInstance) {
@@ -378,9 +362,12 @@
 
                     serverId: listInstance.options.serverId,
                     jobId: jobId,
-                    isLocalSync: listInstance.options.isLocalSync
+                    mode: listInstance.options.mode
 
                 }).then(function () {
+                    fetchData(listInstance);
+                }, function () {
+                    // also update on rejection - just to be sure
                     fetchData(listInstance);
                 });
             });
@@ -390,9 +377,17 @@
     function syncJobList(options) {
         this.options = options;
 
-        var onSyncJobsUpdatedHandler = onSyncJobsUpdated.bind(this);
-        this.onSyncJobsUpdatedHandler = onSyncJobsUpdatedHandler;
-        events.on(serverNotifications, 'SyncJobs', onSyncJobsUpdatedHandler);
+        var onSyncJobCreatedHandler = onSyncJobCreated.bind(this);
+        this.onSyncJobCreatedHandler = onSyncJobCreatedHandler;
+        events.on(serverNotifications, 'SyncJobCreated', onSyncJobCreatedHandler);
+
+        var onSyncJobCancelledHandler = onSyncJobCancelled.bind(this);
+        this.onSyncJobCancelledHandler = onSyncJobCancelledHandler;
+        events.on(serverNotifications, 'SyncJobCancelled', onSyncJobCancelledHandler);
+
+        var onSyncJobUpdatedHandler = onSyncJobUpdated.bind(this);
+        this.onSyncJobUpdatedHandler = onSyncJobUpdatedHandler;
+        events.on(serverNotifications, 'SyncJobUpdated', onSyncJobUpdatedHandler);
 
         var onClickHandler = onElementClick.bind(this);
         options.element.addEventListener('click', onClickHandler);
@@ -401,51 +396,21 @@
         options.element.innerHTML = '<div class="syncJobListContent"></div>';
 
         fetchData(this);
-        startListening(this);
-
-        initSupporterInfo(options.element, getApiClient(this));
-    }
-
-    function showSupporterInfo(context) {
-
-        var html = '<button is="emby-button" class="raised button-accent block btnSyncSupporter" style="margin:1em 0;">';
-
-        html += '<div>';
-        html += globalize.translate('sharedcomponents#HeaderSyncRequiresSub');
-        html += '</div>';
-        html += '<div style="margin-top:.5em;">';
-        html += globalize.translate('sharedcomponents#LearnMore');
-        html += '</div>';
-
-        html += '</button';
-
-        context.insertAdjacentHTML('afterbegin', html);
-
-        context.querySelector('.btnSyncSupporter').addEventListener('click', function () {
-
-            registrationServices.validateFeature('sync');
-        });
-
-    }
-
-    function initSupporterInfo(context, apiClient) {
-
-        registrationServices.validateFeature('sync',
-            {
-                showDialog: false
-
-            }).catch(function () {
-                showSupporterInfo(context, apiClient);
-            });
     }
 
     syncJobList.prototype.destroy = function () {
 
-        stopListening(this);
+        var onSyncJobCreatedHandler = this.onSyncJobCreatedHandler;
+        this.onSyncJobCreatedHandler = null;
+        events.off(serverNotifications, 'SyncJobCreated', onSyncJobCreatedHandler);
 
-        var onSyncJobsUpdatedHandler = this.onSyncJobsUpdatedHandler;
-        this.onSyncJobsUpdatedHandler = null;
-        events.off(serverNotifications, 'SyncJobs', onSyncJobsUpdatedHandler);
+        var onSyncJobCancelledHandler = this.onSyncJobCancelledHandler;
+        this.onSyncJobCancelledHandler = null;
+        events.off(serverNotifications, 'SyncJobCancelled', onSyncJobCancelledHandler);
+
+        var onSyncJobUpdatedHandler = this.onSyncJobUpdatedHandler;
+        this.onSyncJobUpdatedHandler = null;
+        events.off(serverNotifications, 'SyncJobUpdated', onSyncJobUpdatedHandler);
 
         var onClickHandler = this.onClickHandler;
         this.onClickHandler = null;

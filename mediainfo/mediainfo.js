@@ -1,5 +1,43 @@
-define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'material-icons', 'css!./mediainfo.css', 'programStyles', 'emby-linkbutton'], function (datetime, globalize, appRouter, itemHelper, indicators) {
+define(['datetime', 'connectionManager', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'material-icons', 'css!./mediainfo.css', 'programStyles', 'emby-linkbutton'], function (datetime, connectionManager, globalize, appRouter, itemHelper, indicators) {
     'use strict';
+
+    function addLeadingZeros(number, count) {
+        var res = number + "";
+        while (res.length < count) { res = "0" + res; }
+        return res;
+    }
+
+    function getHumanReadableRuntime(ticks) {
+
+        try {
+            var days = Math.trunc(ticks / 864000000000);
+            var hours = Math.trunc((ticks % 864000000000) / 36000000000);
+            var mins = Math.trunc((ticks % 36000000000) / 600000000);
+
+            var parts = [];
+
+            if (days) {
+                parts.push(days + 'd');
+            }
+
+            if (hours) {
+                parts.push(hours + 'h');
+            }
+
+            if (mins) {
+                parts.push(mins + 'm');
+            }
+
+            if (!parts.length) {
+                return datetime.getDisplayRunningTime(ticks);
+            }
+
+            return parts.join(' ');
+        }
+        catch (err) {
+            return datetime.getDisplayRunningTime(ticks);
+        }
+    }
 
     function getTimerIndicator(item) {
 
@@ -54,7 +92,7 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
 
                 if (item.EndDate) {
                     date = datetime.parseISO8601Date(item.EndDate);
-                    text += ' - ' + datetime.getDisplayTime(date);
+                    text += ' &ndash; ' + datetime.getDisplayTime(date);
                 }
 
                 miscInfo.push(text);
@@ -122,17 +160,7 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
             }
 
             if (item.RunTimeTicks) {
-                miscInfo.push(datetime.getDisplayRunningTime(item.RunTimeTicks));
-            }
-        }
-
-        else if (item.Type === "PhotoAlbum" || item.Type === "BoxSet") {
-
-            count = item.ChildCount;
-
-            if (count) {
-
-                miscInfo.push(globalize.translate('sharedcomponents#ItemCount', count));
+                miscInfo.push(getHumanReadableRuntime(item.RunTimeTicks));
             }
         }
 
@@ -203,7 +231,7 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
                         var endYear = datetime.parseISO8601Date(item.EndDate).getFullYear();
 
                         if (endYear !== item.ProductionYear) {
-                            text += "-" + datetime.parseISO8601Date(item.EndDate).getFullYear();
+                            text += " &ndash; " + datetime.parseISO8601Date(item.EndDate).getFullYear();
                         }
 
                     }
@@ -219,6 +247,9 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
         if (item.Type === 'Program') {
 
             if (options.programIndicator !== false) {
+
+                var apiClient = connectionManager.getApiClient(item.ServerId);
+
                 if (item.IsLive) {
                     miscInfo.push({
                         html: '<div class="mediaInfoProgramAttribute mediaInfoItem liveTvProgram">' + globalize.translate('sharedcomponents#Live') + '</div>'
@@ -229,12 +260,12 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
                         html: '<div class="mediaInfoProgramAttribute mediaInfoItem premiereTvProgram">' + globalize.translate('sharedcomponents#Premiere') + '</div>'
                     });
                 }
-                else if (item.IsSeries && !item.IsRepeat) {
+                else if (item.IsNew || (item.IsSeries && !item.IsRepeat && !connectionManager.getApiClient(item.ServerId).isMinServerVersion('3.6.0.0'))) {
                     miscInfo.push({
                         html: '<div class="mediaInfoProgramAttribute mediaInfoItem newTvProgram">' + globalize.translate('sharedcomponents#AttributeNew') + '</div>'
                     });
                 }
-                else if (item.IsSeries && item.IsRepeat) {
+                else if (item.IsRepeat) {
                     miscInfo.push({
                         html: '<div class="mediaInfoProgramAttribute mediaInfoItem repeatTvProgram">' + globalize.translate('sharedcomponents#Repeat') + '</div>'
                     });
@@ -298,11 +329,8 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
                 miscInfo.push(datetime.getDisplayRunningTime(item.RunTimeTicks));
 
             } else {
-                minutes = item.RunTimeTicks / 600000000;
 
-                minutes = minutes || 1;
-
-                miscInfo.push(Math.round(minutes) + " mins");
+                miscInfo.push(getHumanReadableRuntime(item.RunTimeTicks));
             }
         }
 
@@ -338,9 +366,9 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
         if (item.CriticRating && options.criticRating !== false) {
 
             if (item.CriticRating >= 60) {
-                html += '<div class="mediaInfoItem mediaInfoCriticRating mediaInfoCriticRatingFresh">' + item.CriticRating + '</div>';
+                html += '<div class="mediaInfoItem mediaInfoCriticRating mediaInfoCriticRatingFresh">' + item.CriticRating + '%</div>';
             } else {
-                html += '<div class="mediaInfoItem mediaInfoCriticRating mediaInfoCriticRatingRotten">' + item.CriticRating + '</div>';
+                html += '<div class="mediaInfoItem mediaInfoCriticRating mediaInfoCriticRatingRotten">' + item.CriticRating + '%</div>';
             }
         }
 
@@ -499,30 +527,33 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
 
     function getResolutionText(i) {
 
-        if (i.Width) {
+        var width = i.Width;
+        var height = i.Height;
 
-            if (i.Width >= 3800) {
+        if (width && height) {
+
+            if (width >= 3800 || height >= 2000) {
                 return '4K';
             }
-            if (i.Width >= 2500) {
+            if (width >= 2500 || height >= 1400) {
                 if (i.IsInterlaced) {
                     return '1440i';
                 }
                 return '1440P';
             }
-            if (i.Width >= 1880) {
+            if (width >= 1800 || height >= 1000) {
                 if (i.IsInterlaced) {
                     return '1080i';
                 }
                 return '1080P';
             }
-            if (i.Width >= 1200) {
+            if (width >= 1200 || height >= 700) {
                 if (i.IsInterlaced) {
                     return '720i';
                 }
                 return '720P';
             }
-            if (i.Width >= 700) {
+            if (width >= 700 || height >= 400) {
 
                 if (i.IsInterlaced) {
                     return '480i';
@@ -563,14 +594,14 @@ define(['datetime', 'globalize', 'appRouter', 'itemHelper', 'indicators', 'mater
         })[0] || {};
         var audioStream = getAudioStreamForDisplay(item) || {};
 
-        if (item.VideoType === 'Dvd') {
+        if (item.VideoType === 'Dvd' || item.Container === 'dvd') {
             list.push({
                 type: 'mediainfo',
                 text: 'Dvd'
             });
         }
 
-        if (item.VideoType === 'BluRay') {
+        if (item.VideoType === 'BluRay' || item.Container === 'bluray') {
             list.push({
                 type: 'mediainfo',
                 text: 'BluRay'

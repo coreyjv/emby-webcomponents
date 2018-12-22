@@ -28,14 +28,15 @@ html, .skinHeader {
     backdrop-filter: none !important;
     background-color: rgba(0, 0, 0, .3);
     background: linear-gradient(rgba(0, 0, 0, .6), rgba(0, 0, 0, 0));
+    box-shadow: none !important;
 }
 
 .pageTitleWithDefaultLogo {
     background-image: url(../logowhite.png);
 }
 
-.backgroundContainer {
-    background-color: #f2f2f2;
+html, .backgroundContainer {
+    background-color: #fafafa;
     /*background-image: linear-gradient(to bottom,#C2D4DE, #EBFAFE, #E3DCD4, #CED6D8, #C0D3DA);*/
 }
 
@@ -50,31 +51,37 @@ html, .skinHeader {
 /* buttons */
 .paper-icon-button-light:focus {
     color: #cc3333;
+    background-color: rgba(204, 51, 51, 0.2);
 }
 
 .skinHeader-withBackground .paper-icon-button-light:focus {
     color: #fff;
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 .raised, .fab {
-    background: #fff;
+    background: #d8d8d8;
     color: inherit;
 }
 
-.button-submit {
+    .raised:focus, .fab:focus {
+        background: #ccc;
+        color: inherit;
+    }
+
+.detailButton-mobile-icon {
+    border-color: rgba(0,0,0,.3);
+}
+
+.button-submit:not(.emby-button-tv) {
     background: #cc3333;
     color: #fff;
 }
 
-.button-cancel {
-    background: #fff;
-    color: inherit;
-}
-
-.button-accent {
-    background: #cc3333;
-    color: #fff;
-}
+    .button-submit:not(.emby-button-tv):focus {
+        background: #D83F3F;
+        color: #fff;
+    }
 
 .checkboxLabel {
     color: inherit;
@@ -92,28 +99,43 @@ html, .skinHeader {
     border-color: currentColor;
 }
 
-.paperList, .visualCardBox {
+.paperList {
     background-color: #fff;
+    border: 1px solid #e4e4e4;
+    border-radius: .25em;
+}
+
+.visualCardBox {
+    background-color: #fff;
+}
+
+.defaultCardBackground0 {
+    background-color: #eee;
 }
 
 .defaultCardBackground1 {
     background-color: #009688;
+    color: #fff !important;
 }
 
 .defaultCardBackground2 {
     background-color: #D32F2F;
+    color: #fff !important;
 }
 
 .defaultCardBackground3 {
     background-color: #0288D1;
+    color: #fff !important;
 }
 
 .defaultCardBackground4 {
     background-color: #388E3C;
+    color: #fff !important;
 }
 
 .defaultCardBackground5 {
     background-color: #F57F17;
+    color: #fff !important;
 }
 
 .formDialogHeader:not(.formDialogHeader-clear) {
@@ -130,6 +152,7 @@ html, .skinHeader {
 
 .listItem .secondary, .nowPlayingBarSecondaryText, .secondaryText, .fieldDescription, .cardText-secondary, .programSecondaryTitle, .guide-programNameCaret {
     color: #888;
+    color: rgba(0, 0, 0, .6);
 }
 
 .actionsheetDivider {
@@ -158,22 +181,12 @@ html, .skinHeader {
 
 /* appfooter */
 .appfooter {
-    background: #282828;
-    color: #ccc;
-    color: rgba(255, 255, 255, .78);
-}
-
-@supports ( (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) ) {
-
-    .appfooter-blurred {
-        background: rgba(24,24,24,.7);
-        -webkit-backdrop-filter: blur(20px);
-        backdrop-filter: blur(20px);
-    }
+    background: #ffffff;
+    border-top: 1px solid #e2e2e2;
 }
 
 .nowPlayingBarSecondaryText {
-    color: #999;
+    color: rgba(255, 255, 255, .5);
 }
 
 /* Multi-select */
@@ -194,7 +207,7 @@ html, .skinHeader {
 /* alphaPicker */
 .alphaPickerButton {
     color: #555;
-    color: rgba(0, 0, 0, .7);
+    color: rgba(0, 0, 0, .6);
     background-color: transparent;
 }
 
@@ -204,12 +217,12 @@ html, .skinHeader {
 }
 
 /* listItem */
-.listItem-shaded:nth-child(even), .detailTableBodyRow-shaded:nth-child(even) {
+.detailTableBodyRow-shaded:nth-child(even) {
     background: #f8f8f8;
 }
 
 .listItem-border {
-    border-color: #f8f8f8 !important;
+    border-color: rgba(0,0,0,.1) !important;
 }
 
 .listItem:focus {
@@ -275,7 +288,7 @@ html, .skinHeader {
     background-color: rgba(204,51,51, 0.26);
 }
 
-.emby-checkbox:checked + span + span + .checkboxOutline > .checkboxOutlineTick {
+.emby-checkbox:checked + span + span + .checkboxOutline {
     background-color: #cc3333;
 }
 
@@ -303,16 +316,11 @@ html, .skinHeader {
 
 /* main nav drawer */
 .mainDrawer {
-    background: #fff;
-}
-
-.navMenuDivider {
-    background: #eaeaea;
-    background: rgba(0, 0, 0, .12);
+    background: #f2f2f2;
 }
 
 .navMenuOption:hover {
-    background: #f2f2f2;
+    background: #e8e8e8;
 }
 
 .navMenuOption-selected {
@@ -337,10 +345,18 @@ html, .skinHeader {
     color: rgba(255, 255, 255, 1);
 }
 
-    .emby-tab-button-active.emby-button-tv {
-        color: #fff;
-        color: rgba(255, 255, 255, 1);
-    }
+.appfooter .emby-tab-button {
+    color: rgba(0, 0, 0, .6);
+}
+
+.appfooter .emby-tab-button-active {
+    color: #cc3333;
+}
+
+.emby-tab-button-active.emby-button-tv {
+    color: #fff;
+    color: rgba(255, 255, 255, 1);
+}
 
 .emby-tab-button.emby-button-tv:focus {
     color: #fff;
@@ -407,15 +423,7 @@ html, .skinHeader {
 
 /* detail screen */
 .itemBackdropFader {
-    background: linear-gradient(rgba(0,0,0,0), #f2f2f2);
-}
-
-@media all and (min-width: 62.5em) {
-
-    .detailButton-mobile {
-        background: rgba(0,0,0,.14) !important;
-        backdrop-filter: blur(10px);
-    }
+    background: linear-gradient(rgba(0,0,0,0), #fafafa);
 }
 
 /* used by directory picker and other areas */
@@ -450,4 +458,43 @@ html, .skinHeader {
 /* cards */
 .card:focus .card-focuscontent {
     border-color: #cc3333;
+}
+
+/* emby-slider */
+.emby-slider-background {
+    background: rgba(0,0,0,.1);
+}
+
+.emby-slider {
+    color: #cc3333;
+}
+
+    .emby-slider::-moz-range-track {
+        background: #444;
+    }
+
+    .emby-slider::-moz-range-progress {
+        background: #cc3333;
+    }
+
+    .emby-slider::-webkit-slider-thumb {
+        background: #cc3333;
+    }
+
+    .emby-slider::-moz-range-thumb {
+        background: #cc3333;
+    }
+
+    .emby-slider::-ms-thumb {
+        background: #cc3333;
+    }
+
+.emby-slider-background-lower {
+    background-color: #52B54B;
+}
+
+/* scrollbuttons */
+.scrollbuttoncontainer {
+    color: #fff;
+    background: rgba(0,0,0,.9);
 }

@@ -55,7 +55,7 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
 
     function supportsAddingToCollection(item) {
 
-        var invalidTypes = ['Person', 'Genre', 'MusicGenre', 'Studio', 'GameGenre', 'BoxSet', 'Playlist', 'UserView', 'CollectionFolder', 'Audio', 'Program', 'Timer', 'SeriesTimer'];
+        var invalidTypes = ['Genre', 'MusicGenre', 'Studio', 'GameGenre', 'UserView', 'CollectionFolder', 'Audio', 'Program', 'Timer', 'SeriesTimer'];
 
         if (item.Type === 'Recording') {
             if (item.Status !== 'Completed') {
@@ -63,7 +63,33 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
             }
         }
 
-        return !item.CollectionType && invalidTypes.indexOf(item.Type) === -1 && item.MediaType !== 'Photo' && !isLocalItem(item);
+        if (item.CollectionType) {
+            return false;
+        }
+
+        if (invalidTypes.indexOf(item.Type) !== -1) {
+            return false;
+        }
+
+        if (isLocalItem(item)) {
+            return false;
+        }
+
+        if (item.MediaType === 'Photo') {
+            return false;
+        }
+
+        if (item.IsFolder || item.Type === "MusicArtist") {
+            return true;
+        }
+
+        // Check ParentId to filter out owned items (for now)
+        // https://emby.media/community/index.php?/topic/63827-add-movie-extras-to-playlists
+        if (!item.ParentId) {
+            return false;
+        }
+
+        return true;
     }
 
     function supportsAddingToPlaylist(item) {
@@ -80,7 +106,13 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
         if (item.Type === 'SeriesTimer') {
             return false;
         }
+        if (item.Type === 'PlaylistsFolder') {
+            return false;
+        }
         if (item.MediaType === 'Photo') {
+            return false;
+        }
+        if (item.MediaType === 'Game') {
             return false;
         }
 
@@ -93,15 +125,28 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
         if (isLocalItem(item)) {
             return false;
         }
+        if (item.CollectionType === 'livetv') {
+            return false;
+        }
 
-        return item.MediaType || item.IsFolder || item.Type === "Genre" || item.Type === "MusicGenre" || item.Type === "MusicArtist";
+        if (item.IsFolder || item.Type === "Genre" || item.Type === "MusicGenre" || item.Type === "MusicArtist") {
+            return true;
+        }
+
+        // Check ParentId to filter out owned items (for now)
+        // https://emby.media/community/index.php?/topic/63827-add-movie-extras-to-playlists
+        if (!item.ParentId) {
+            return false;
+        }
+
+        return item.MediaType;
     }
 
-    function canEdit(user, item) {
+    function canEditInternal(user, item) {
 
         var itemType = item.Type;
 
-        if (itemType === "UserRootFolder" || /*itemType == "CollectionFolder" ||*/ itemType === "UserView") {
+        if (itemType === "UserRootFolder" || itemType === "CollectionFolder" || itemType === "UserView" || itemType === "PlaylistsFolder") {
             return false;
         }
 
@@ -109,6 +154,18 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
             return false;
         }
 
+        if (itemType === 'Genre' || itemType === 'MusicGenre' || itemType === 'GameGenre' || itemType === 'Studio') {
+            return false;
+        }
+
+        if (itemType === 'Timer') {
+            return false;
+        }
+
+        if (itemType === 'SeriesTimer') {
+            return false;
+        }
+
         if (item.Type === 'Recording') {
             if (item.Status !== 'Completed') {
                 return false;
@@ -119,13 +176,18 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
             return false;
         }
 
-        return user.Policy.IsAdministrator;
+        return true;
     }
 
     function isLocalItem(item) {
 
-        if (item && item.Id && item.Id.indexOf('local') === 0) {
-            return true;
+        if (item) {
+
+            var id = item.Id;
+
+            if (typeof id === 'string' && id.indexOf('local') === 0) {
+                return true;
+            }
         }
 
         return false;
@@ -149,7 +211,8 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
                 itemType === "Person" ||
                 itemType === "Book" ||
                 itemType === "MusicAlbum" ||
-                itemType === "MusicArtist") {
+                itemType === "MusicArtist" ||
+                itemType === "MusicVideo") {
 
                 if (user.Policy.IsAdministrator) {
 
@@ -162,7 +225,24 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
             return false;
         },
 
-        canEdit: canEdit,
+        canEdit: function (user, item) {
+
+            return canEditInternal(user, item) && user.Policy.IsAdministrator;
+        },
+
+        canEditSubtitles: function (user, item) {
+
+            if (user.Policy.EnableSubtitleDownloading || user.Policy.EnableSubtitleManagement) {
+                return canEditInternal(user, item);
+            }
+
+            if (user.Policy.EnableSubtitleDownloading == null && user.Policy.EnableSubtitleManagement == null) {
+                return canEditInternal(user, item) && user.Policy.IsAdministrator;
+            }
+
+            return false;
+
+        },
 
         canEditImages: function (user, item) {
 
@@ -172,12 +252,20 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
                 return false;
             }
 
-            if (itemType === 'UserView') {
-                if (user.Policy.IsAdministrator) {
+            if (itemType === 'CollectionFolder' || itemType === 'UserView' || itemType === 'PlaylistsFolder' ||
+                itemType === 'Genre' || itemType === 'MusicGenre' || itemType === 'GameGenre' || itemType === 'Studio') {
 
-                    return true;
+                if (!isLocalItem(item)) {
+                    if (user.Policy.IsAdministrator) {
+
+                        return true;
+                    }
+
+                    return false;
                 }
+            }
 
+            if (itemType === 'Genre' || itemType === 'MusicGenre' || itemType === 'GameGenre' || itemType === 'Studio') {
                 return false;
             }
 
@@ -187,7 +275,7 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
                 }
             }
 
-            return itemType !== 'Timer' && itemType !== 'SeriesTimer' && canEdit(user, item) && !isLocalItem(item);
+            return canEditInternal(user, item) && user.Policy.IsAdministrator;
         },
 
         canSync: function (user, item) {
@@ -234,31 +322,30 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
 
         canMarkPlayed: function (item) {
 
-            if (item.Type === 'Program') {
+            if (item.SupportsResume) {
+                return true;
+            }
+
+            var itemType = item.Type;
+            var mediaType = item.MediaType;
+
+            if (itemType === 'Program') {
                 return false;
             }
 
-            if (item.MediaType === 'Video') {
-                if (item.Type !== 'TvChannel') {
+            if (mediaType === 'Video') {
+                if (itemType !== 'TvChannel') {
                     return true;
                 }
             }
 
-            else if (item.MediaType === 'Audio') {
-                if (item.Type === 'AudioPodcast') {
-                    return true;
-                }
-                if (item.Type === 'AudioBook') {
-                    return true;
-                }
-            }
-
-            if (item.Type === "Series" ||
-                item.Type === "Season" ||
-                item.Type === "BoxSet" ||
-                item.MediaType === "Game" ||
-                item.MediaType === "Book" ||
-                item.MediaType === "Recording") {
+            if (itemType === "AudioBook" ||
+                itemType === "Series" ||
+                itemType === "Season" ||
+                itemType === "BoxSet" ||
+                mediaType === "Game" ||
+                mediaType === "Book" ||
+                mediaType === "Recording") {
                 return true;
             }
 
@@ -267,7 +354,54 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
 
         canRate: function (item) {
 
-            if (item.Type === 'Program' || item.Type === 'Timer' || item.Type === 'SeriesTimer') {
+            var itemType = item.Type;
+
+            if (itemType === 'Program' ||
+                itemType === 'Timer' ||
+                itemType === 'SeriesTimer' ||
+                itemType === 'CollectionFolder' ||
+                itemType === 'UserView' ||
+                itemType === 'Channel' ||
+                itemType === 'Season' ||
+                itemType === 'Studio' ||
+                itemType === 'PlaylistsFolder') {
+                return false;
+            }
+
+            // Could be a stub object like PersonInfo
+            if (!item.UserData) {
+                return false;
+            }
+
+            return true;
+        },
+
+        canConvert: function (item, user) {
+
+            if (!user.Policy.EnableMediaConversion) {
+                return false;
+            }
+
+            if (isLocalItem(item)) {
+                return false;
+            }
+
+            var mediaType = item.MediaType;
+            if (mediaType === 'Book' || mediaType === 'Photo' || mediaType === 'Game' || mediaType === 'Audio') {
+                return false;
+            }
+
+            var collectionType = item.CollectionType;
+            if (collectionType === 'livetv') {
+                return false;
+            }
+
+            var type = item.Type;
+            if (type === 'Channel' || type === 'Person' || type === 'Year' || type === 'Program' || type === 'Timer' || type === 'SeriesTimer' || type === 'GameGenre' || type === 'PlaylistsFolder') {
+                return false;
+            }
+
+            if (item.LocationType === 'Virtual' && !item.IsFolder) {
                 return false;
             }
 
@@ -278,7 +412,12 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
 
             if (user.Policy.IsAdministrator) {
 
-                if (item.Type !== 'Timer' && item.Type !== 'SeriesTimer' && item.Type !== 'Program' && item.Type !== 'TvChannel' && !(item.Type === 'Recording' && item.Status !== 'Completed')) {
+                var collectionType = item.CollectionType;
+                if (collectionType === 'livetv') {
+                    return false;
+                }
+
+                if (item.Type !== 'Timer' && item.Type !== 'SeriesTimer' && item.Type !== 'Program' && item.Type !== 'TvChannel' && item.Type !== 'PlaylistsFolder' && !(item.Type === 'Recording' && item.Status !== 'Completed')) {
 
                     if (!isLocalItem(item)) {
                         return true;
@@ -300,14 +439,51 @@ define(['apphost', 'globalize'], function (appHost, globalize) {
             if (!item.MediaSources || (item.MediaSources.length === 1 && item.MediaSources[0].Type === 'Placeholder')) {
                 return false;
             }
-            if (item.EnableMediaSourceDisplay === false) {
-                return false;
-            }
-            if (item.EnableMediaSourceDisplay == null && item.SourceType && item.SourceType !== 'Library') {
+
+            return true;
+        },
+
+        supportsSimilarItems: function (item) {
+
+            var itemType = item.Type;
+
+            return itemType === "Movie" ||
+                itemType === "Trailer" ||
+                itemType === "Series" ||
+                itemType === "Program" ||
+                itemType === "Recording" ||
+                itemType === "Game" ||
+                itemType === "MusicAlbum" ||
+                itemType === "MusicArtist" ||
+                itemType === "Playlist";
+        },
+
+        supportsSimilarItemsOnLiveTV: function (item, apiClient) {
+
+            var itemType = item.Type;
+
+            if (!apiClient.isMinServerVersion('3.6.0.18')) {
                 return false;
             }
 
-            return true;
+            return itemType === "Movie" ||
+                itemType === "Trailer" ||
+                itemType === "Series";
+        },
+
+        supportsExtras: function (item) {
+
+            if (item.IsFolder) {
+                return false;
+            }
+
+            if (item.Type === 'TvChannel') {
+                return false;
+            }
+
+            var mediaType = item.MediaType;
+
+            return mediaType === 'Video';
         }
     };
 });

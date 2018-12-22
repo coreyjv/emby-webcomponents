@@ -1,4 +1,4 @@
-define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'focusManager', 'browser', 'apphost', 'loading', 'css!./style', 'material-icons', 'paper-icon-button-light'], function (dialogHelper, inputmanager, connectionManager, layoutManager, focusManager, browser, appHost, loading) {
+define(['events', 'dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'focusManager', 'browser', 'apphost', 'loading', 'css!./style', 'material-icons', 'paper-icon-button-light'], function (events, dialogHelper, inputmanager, connectionManager, layoutManager, focusManager, browser, appHost, loading) {
     'use strict';
 
     function getImageUrl(item, options, apiClient) {
@@ -73,6 +73,16 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
         return '<button is="paper-icon-button-light" class="autoSize ' + cssClass + '"' + tabIndex + autoFocus + '><i class="md-icon slideshowButtonIcon">' + icon + '</i></button>';
     }
 
+    function setUserScalable(scalable) {
+
+        try {
+            appHost.setUserScalable(scalable);
+        }
+        catch (err) {
+            console.log('error in appHost.setUserScalable: ' + err);
+        }
+    }
+
     return function (options) {
 
         var self = this;
@@ -82,6 +92,11 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
         var currentIntervalMs;
         var currentOptions;
         var currentIndex;
+
+        // small hack since this is not possible anyway
+        if (browser.chromecast) {
+            options.interactive = false;
+        }
 
         function createElements(options) {
 
@@ -105,8 +120,8 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
                 html += '<div>';
                 html += '<div class="slideshowSwiperContainer"><div class="swiper-wrapper"></div></div>';
 
-                html += getIcon('keyboard_arrow_left', 'btnSlideshowPrevious slideshowButton hide-mouse-idle', false);
-                html += getIcon('keyboard_arrow_right', 'btnSlideshowNext slideshowButton hide-mouse-idle', false);
+                html += getIcon('keyboard_arrow_left', 'btnSlideshowPrevious slideshowButton hide-mouse-idle-tv', false);
+                html += getIcon('keyboard_arrow_right', 'btnSlideshowNext slideshowButton hide-mouse-idle-tv', false);
 
                 html += '<div class="topActionButtons">';
                 if (actionButtonsOnTop) {
@@ -117,7 +132,7 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
                         html += getIcon('share', 'btnShare slideshowButton', true);
                     }
                 }
-                html += getIcon('close', 'slideshowButton btnSlideshowExit hide-mouse-idle', false);
+                html += getIcon('close', 'slideshowButton btnSlideshowExit hide-mouse-idle-tv', false);
                 html += '</div>';
 
                 if (!actionButtonsOnTop) {
@@ -166,10 +181,18 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
                 }
             }
 
+            setUserScalable(true);
+
             dialogHelper.open(dlg).then(function () {
 
+                setUserScalable(false);
                 stopInterval();
             });
+
+            // This dialog doesn't focus anything when it opens, so add this to prevent focus from staying on the previous element
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
 
             inputmanager.on(window, onInputCommand);
             document.addEventListener((window.PointerEvent ? 'pointermove' : 'mousemove'), onPointerMove);
@@ -356,6 +379,8 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
 
             inputmanager.off(window, onInputCommand);
             document.removeEventListener((window.PointerEvent ? 'pointermove' : 'mousemove'), onPointerMove);
+
+            events.trigger(self, 'closed');
         }
 
         function startInterval(options) {
@@ -525,10 +550,6 @@ define(['dialogHelper', 'inputManager', 'connectionManager', 'layoutManager', 'f
                 case 'play':
                 case 'playpause':
                 case 'pause':
-                case 'fastforward':
-                case 'rewind':
-                case 'next':
-                case 'previous':
                     showOsd();
                     break;
                 default:

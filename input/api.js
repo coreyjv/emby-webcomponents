@@ -15,7 +15,7 @@ define(['connectionManager', 'playbackManager', 'events', 'inputManager', 'focus
         if (args.TimeoutMs) {
 
             require(['toast'], function (toast) {
-                toast({ title: args.Header, text: args.Text });
+                toast({ title: args.Header, text: args.Text, timeoutMs: args.TimeoutMs });
             });
 
         }
@@ -31,6 +31,14 @@ define(['connectionManager', 'playbackManager', 'events', 'inputManager', 'focus
         if (!playbackManager.isPlayingLocally(['Video', 'Book', 'Game'])) {
             appRouter.showItem(cmd.Arguments.ItemId, apiClient.serverId());
         }
+    }
+
+    function playTrailers(apiClient, itemId) {
+
+        apiClient.getItem(apiClient.getCurrentUserId(), itemId).then(function (item) {
+
+            playbackManager.playTrailers(item);
+        });
     }
 
     function processGeneralCommand(cmd, apiClient) {
@@ -65,6 +73,9 @@ define(['connectionManager', 'playbackManager', 'events', 'inputManager', 'focus
             case 'PageDown':
                 inputManager.trigger('pagedown');
                 return;
+            case 'PlayTrailers':
+                playTrailers(apiClient, cmd.Arguments.ItemId);
+                break;
             case 'SetRepeatMode':
                 playbackManager.setRepeatMode(cmd.Arguments.RepeatMode);
                 break;

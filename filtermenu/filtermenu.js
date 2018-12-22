@@ -1,4 +1,4 @@
-﻿define(['require', 'dom', 'focusManager', 'dialogHelper', 'loading', 'apphost', 'inputManager', 'layoutManager', 'connectionManager', 'appRouter', 'globalize', 'userSettings', 'emby-checkbox', 'emby-input', 'paper-icon-button-light', 'emby-select', 'material-icons', 'css!./../formdialog', 'emby-button', 'emby-linkbutton', 'flexStyles'], function (require, dom, focusManager, dialogHelper, loading, appHost, inputManager, layoutManager, connectionManager, appRouter, globalize, userSettings) {
+﻿define(['require', 'dom', 'focusManager', 'dialogHelper', 'loading', 'apphost', 'inputManager', 'layoutManager', 'connectionManager', 'appRouter', 'globalize', 'userSettings', 'emby-checkbox', 'emby-input', 'emby-select', 'paper-icon-button-light', 'emby-select', 'material-icons', 'css!./../formdialog', 'emby-button', 'emby-linkbutton', 'flexStyles'], function (require, dom, focusManager, dialogHelper, loading, appHost, inputManager, layoutManager, connectionManager, appRouter, globalize, userSettings) {
     'use strict';
 
     function onSubmit(e) {
@@ -7,84 +7,236 @@
         return false;
     }
 
-    function renderOptions(context, selector, cssClass, items, isCheckedFn) {
+    function renderList(container, items, options, property, delimeter) {
 
-        var elem = context.querySelector(selector);
+        var anySelected = false;
+        var value = options.settings[property];
 
-        if (items.length) {
+        var html = items.map(function (i) {
 
-            elem.classList.remove('hide');
+            var itemId = i.Id || i.Name;
+            var selected = (delimeter + (value || '') + delimeter).indexOf(delimeter + itemId + delimeter) !== -1;
 
-        } else {
-            elem.classList.add('hide');
-        }
-
-        var html = '';
-
-        html += items.map(function (filter) {
-
-            var itemHtml = '';
-
-            var checkedHtml = isCheckedFn(filter) ? ' checked' : '';
-            itemHtml += '<label>';
-            itemHtml += '<input is="emby-checkbox" type="checkbox"' + checkedHtml + ' data-filter="' + filter.Id + '" class="' + cssClass + '"/>';
-            itemHtml += '<span>' + filter.Name + '</span>';
-            itemHtml += '</label>';
-
-            return itemHtml;
+            var selectedHtml = selected && !anySelected ? ' selected' : '';
+            if (selected) {
+                anySelected = true;
+            }
+            return '<option value="' + itemId + '"' + selectedHtml + '>' + i.Name + '</option>';
 
         }).join('');
 
-        elem.querySelector('.filterOptions').innerHTML = html;
+        var allText = globalize.translate('All');
+
+        var prefix = anySelected ?
+            '<option value="">' + allText + '</option>' :
+            '<option value="" selected>' + allText + '</option>';
+
+        container.querySelector('select').innerHTML = prefix + html;
+
+        if (items.length) {
+            container.classList.remove('hide');
+        } else {
+            container.classList.add('hide');
+        }
     }
 
-    function renderDynamicFilters(context, result, options) {
+    function loadPlayState(context, options) {
 
-        // If there's a huge number of these they will be really show to render
-        //if (result.Tags) {
-        //    result.Tags.length = Math.min(result.Tags.length, 50);
-        //}
+        var anySelected = false;
+        var menuItems = [];
 
-        renderOptions(context, '.genreFilters', 'chkGenreFilter', result.Genres, function (i) {
-            var delimeter = '|';
-            return (delimeter + (options.settings.GenreIds || '') + delimeter).indexOf(delimeter + i.Id + delimeter) !== -1;
-        });
+        if (options.visibleSettings.indexOf('IsPlayed') !== -1) {
+            menuItems.push({
+                name: globalize.translate('Played'),
+                value: 'IsPlayed'
+            });
+        }
+        if (options.visibleSettings.indexOf('IsUnplayed') !== -1) {
+            menuItems.push({
+                name: globalize.translate('Unplayed'),
+                value: 'IsUnplayed'
+            });
+        }
+        if (options.visibleSettings.indexOf('IsResumable') !== -1) {
+            menuItems.push({
+                name: globalize.translate('ContinuePlaying'),
+                value: 'IsResumable'
+            });
+        }
 
-        //renderOptions(context, '.officialRatingFilters', 'chkOfficialRatingFilter', result.OfficialRatings, function (i) {
-        //    var delimeter = '|';
-        //    return (delimeter + (query.OfficialRatings || '') + delimeter).indexOf(delimeter + i + delimeter) != -1;
-        //});
+        var html = menuItems.map(function (m) {
 
-        //renderOptions(context, '.tagFilters', 'chkTagFilter', result.Tags, function (i) {
-        //    var delimeter = '|';
-        //    return (delimeter + (query.Tags || '') + delimeter).indexOf(delimeter + i + delimeter) != -1;
-        //});
+            var optionSelected = !anySelected && (options.settings[m.value] || false);
+            var selectedHtml = '';
+            if (optionSelected) {
+                anySelected = true;
+                selectedHtml = ' selected';
+            }
 
-        //renderOptions(context, '.yearFilters', 'chkYearFilter', result.Years, function (i) {
+            return '<option value="' + m.value + '" ' + selectedHtml + '>' + m.name + '</option>';
 
-        //    var delimeter = ',';
-        //    return (delimeter + (query.Years || '') + delimeter).indexOf(delimeter + i + delimeter) != -1;
-        //});
+        }).join('');
+
+        var allText = globalize.translate('All');
+
+        var prefix = anySelected ?
+            '<option value="">' + allText + '</option>' :
+            '<option value="" selected>' + allText + '</option>';
+
+        context.querySelector('.selectPlaystate').innerHTML = prefix + html;
+
+        if (menuItems.length) {
+            context.querySelector('.playstateFilters').classList.remove('hide');
+        } else {
+            context.querySelector('.playstateFilters').classList.add('hide');
+        }
     }
 
-    function loadDynamicFilters(context, options) {
+    function handleQueryError() {
+
+        // For older servers
+    }
+
+    function loadGenres(context, options) {
 
         var apiClient = connectionManager.getApiClient(options.serverId);
 
-        var filterMenuOptions = Object.assign(options.filterMenuOptions, {
+        var query = Object.assign(options.filterMenuOptions, {
 
-            UserId: apiClient.getCurrentUserId(),
+            SortBy: "SortName",
+            SortOrder: "Ascending",
+            Recursive: options.Recursive == null ? true : options.Recursive,
+            EnableTotalRecordCount: false,
+            EnableImages: false,
+            EnableUserData: false,
             ParentId: options.parentId,
             IncludeItemTypes: options.itemTypes.join(',')
         });
 
-        apiClient.getFilters(filterMenuOptions).then(function (result) {
+        apiClient.getGenres(apiClient.getCurrentUserId(), query).then(function (result) {
 
-            renderDynamicFilters(context, result, options);
-        }, function () {
+            renderList(context.querySelector('.genreFilters'), result.Items, options, 'GenreIds', ',');
 
-            // older server
+        }, handleQueryError);
+    }
+
+    function loadStudios(context, options) {
+
+        var apiClient = connectionManager.getApiClient(options.serverId);
+
+        var query = Object.assign(options.filterMenuOptions, {
+
+            SortBy: "SortName",
+            SortOrder: "Ascending",
+            Recursive: options.Recursive == null ? true : options.Recursive,
+            EnableTotalRecordCount: false,
+            EnableImages: false,
+            EnableUserData: false,
+            ParentId: options.parentId,
+            IncludeItemTypes: options.itemTypes.join(',')
         });
+
+        apiClient.getStudios(apiClient.getCurrentUserId(), query).then(function (result) {
+
+            renderList(context.querySelector('.studioFilters'), result.Items, options, 'StudioIds', ',');
+
+        }, handleQueryError);
+    }
+
+    function loadOfficialRatings(context, options) {
+
+        var apiClient = connectionManager.getApiClient(options.serverId);
+
+        var query = Object.assign(options.filterMenuOptions, {
+
+            SortBy: "SortName",
+            SortOrder: "Ascending",
+            Recursive: options.Recursive == null ? true : options.Recursive,
+            EnableTotalRecordCount: false,
+            EnableImages: false,
+            EnableUserData: false,
+            ParentId: options.parentId,
+            IncludeItemTypes: options.itemTypes.join(',')
+        });
+
+        apiClient.getOfficialRatings(apiClient.getCurrentUserId(), query).then(function (result) {
+
+            renderList(context.querySelector('.officialRatingFilters'), result.Items, options, 'OfficialRatings', '|');
+
+        }, handleQueryError);
+    }
+
+    function loadTags(context, options) {
+
+        var apiClient = connectionManager.getApiClient(options.serverId);
+
+        var query = Object.assign(options.filterMenuOptions, {
+
+            SortBy: "SortName",
+            SortOrder: "Ascending",
+            Recursive: options.Recursive == null ? true : options.Recursive,
+            EnableTotalRecordCount: false,
+            EnableImages: false,
+            EnableUserData: false,
+            ParentId: options.parentId,
+            IncludeItemTypes: options.itemTypes.join(',')
+        });
+
+        apiClient.getTags(apiClient.getCurrentUserId(), query).then(function (result) {
+
+            renderList(context.querySelector('.tagFilters'), result.Items, options, 'Tags', '|');
+
+        }, handleQueryError);
+    }
+
+    function loadYears(context, options) {
+
+        var apiClient = connectionManager.getApiClient(options.serverId);
+
+        if (!apiClient.isMinServerVersion('3.6.0.53')) {
+            return Promise.resolve();
+        }
+
+        var query = Object.assign(options.filterMenuOptions, {
+
+            SortBy: "SortName",
+            SortOrder: "Ascending",
+            Recursive: options.Recursive == null ? true : options.Recursive,
+            EnableTotalRecordCount: false,
+            EnableImages: false,
+            EnableUserData: false,
+            ParentId: options.parentId,
+            IncludeItemTypes: options.itemTypes.join(',')
+        });
+
+        apiClient.getYears(apiClient.getCurrentUserId(), query).then(function (result) {
+
+            renderList(context.querySelector('.yearFilters'), result.Items, options, 'Years', ',');
+
+        }, handleQueryError);
+    }
+
+    function loadContainers(context, options) {
+
+        var apiClient = connectionManager.getApiClient(options.serverId);
+
+        var query = Object.assign(options.filterMenuOptions, {
+
+            SortBy: "SortName",
+            SortOrder: "Ascending",
+            Recursive: options.Recursive == null ? true : options.Recursive,
+            EnableTotalRecordCount: false,
+            EnableImages: false,
+            EnableUserData: false,
+            ParentId: options.parentId,
+            IncludeItemTypes: options.itemTypes.join(',')
+        });
+
+        apiClient.getContainers(apiClient.getCurrentUserId(), query).then(function (result) {
+
+            renderList(context.querySelector('.containerFilters'), result.Items, options, 'Containers', ',');
+
+        }, handleQueryError);
     }
 
     function initEditor(context, settings) {
@@ -101,14 +253,6 @@
             } else {
                 elems[i].querySelector('input').checked = settings[elems[i].getAttribute('data-settingname')] || false;
             }
-        }
-
-        var videoTypes = settings.VideoTypes ? settings.VideoTypes.split(',') : [];
-        elems = context.querySelectorAll('.chkVideoTypeFilter');
-
-        for (i = 0, length = elems.length; i < length; i++) {
-
-            elems[i].checked = videoTypes.indexOf(elems[i].getAttribute('data-filter')) !== -1;
         }
 
         var seriesStatuses = settings.SeriesStatus ? settings.SeriesStatus.split(',') : [];
@@ -145,18 +289,6 @@
             }
         }
 
-        // Video type
-        var videoTypes = [];
-        elems = context.querySelectorAll('.chkVideoTypeFilter');
-
-        for (i = 0, length = elems.length; i < length; i++) {
-
-            if (elems[i].checked) {
-                videoTypes.push(elems[i].getAttribute('data-filter'));
-            }
-        }
-        userSettings.setFilter(settingsKey + '-filter-VideoTypes', videoTypes.join(','));
-
         // Series status
         var seriesStatuses = [];
         elems = context.querySelectorAll('.chkSeriesStatus');
@@ -167,18 +299,74 @@
                 seriesStatuses.push(elems[i].getAttribute('data-filter'));
             }
         }
+        userSettings.setFilter(settingsKey + '-filter-SeriesStatus', seriesStatuses.join(','));
 
         // Genres
         var genres = [];
-        elems = context.querySelectorAll('.chkGenreFilter');
+        var elem = context.querySelector('.selectGenre');
+        if (elem.value) {
+            genres.push(elem.value);
+        }
 
-        for (i = 0, length = elems.length; i < length; i++) {
+        userSettings.setFilter(settingsKey + '-filter-GenreIds', genres.join(','));
 
-            if (elems[i].checked) {
-                genres.push(elems[i].getAttribute('data-filter'));
+        var studios = [];
+        elem = context.querySelector('.selectStudio');
+        if (elem.value) {
+            studios.push(elem.value);
+        }
+        userSettings.setFilter(settingsKey + '-filter-StudioIds', studios.join(','));
+
+        var tags = [];
+        elem = context.querySelector('.selectTags');
+        if (elem.value) {
+            tags.push(elem.value);
+        }
+        userSettings.setFilter(settingsKey + '-filter-Tags', tags.join('|'));
+
+        var containers = [];
+        elem = context.querySelector('.selectContainers');
+        if (elem.value) {
+            containers.push(elem.value);
+        }
+        userSettings.setFilter(settingsKey + '-filter-Containers', containers.join(','));
+
+        var years = [];
+        elem = context.querySelector('.selectYears');
+        if (elem.value) {
+            years.push(elem.value);
+        }
+        userSettings.setFilter(settingsKey + '-filter-Years', years.join(','));
+
+        var OfficialRatings = [];
+        elem = context.querySelector('.selectOfficialRating');
+        if (elem.value) {
+            OfficialRatings.push(elem.value);
+        }
+        userSettings.setFilter(settingsKey + '-filter-OfficialRatings', OfficialRatings.join('|'));
+
+        setPlaystateFilters(context, settingsKey);
+    }
+
+    function setPlaystateFilters(context, settingsKey) {
+
+        var selectPlaystate = context.querySelector('.selectPlaystate');
+        var options = selectPlaystate.options;
+        var value = selectPlaystate.value;
+
+        for (var i = 0, length = options.length; i < length; i++) {
+
+            var optionValue = options[i].value;
+            if (optionValue === value) {
+                if (optionValue) {
+                    userSettings.setFilter(settingsKey + '-filter-' + optionValue, true);
+                }
+            } else {
+                if (optionValue) {
+                    userSettings.setFilter(settingsKey + '-filter-' + optionValue, null);
+                }
             }
         }
-        userSettings.setFilter(settingsKey + '-filter-GenreIds', genres.join('|'));
     }
 
     function setBasicFilter(context, key, elem) {
@@ -262,7 +450,11 @@
                     scrollY: false
                 };
 
-                dialogOptions.size = 'fullscreen-border';
+                if (layoutManager.tv) {
+                    dialogOptions.size = 'fullscreen';
+                } else {
+                    dialogOptions.size = 'small';
+                }
 
                 var dlg = dialogHelper.createDialog(dialogOptions);
 
@@ -271,7 +463,7 @@
                 var html = '';
 
                 html += '<div class="formDialogHeader">';
-                html += '<button is="paper-icon-button-light" class="btnCancel hide-mouse-idle" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
+                html += '<button is="paper-icon-button-light" class="btnCancel hide-mouse-idle-tv" tabindex="-1"><i class="md-icon">&#xE5C4;</i></button>';
                 html += '<h3 class="formDialogHeaderTitle">${Filters}</h3>';
 
                 html += '</div>';
@@ -290,7 +482,13 @@
                 }
 
                 initEditor(dlg, options.settings);
-                loadDynamicFilters(dlg, options);
+                loadGenres(dlg, options);
+                loadStudios(dlg, options);
+                loadTags(dlg, options);
+                loadOfficialRatings(dlg, options);
+                loadPlayState(dlg, options);
+                loadContainers(dlg, options);
+                loadYears(dlg, options);
 
                 bindCheckboxInput(dlg, true);
 

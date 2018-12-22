@@ -258,11 +258,6 @@
                 parentContainer.insertAdjacentHTML('afterbegin', getNowPlayingBarHtml());
                 nowPlayingBarElement = parentContainer.querySelector('.nowPlayingBar');
 
-                if (browser.safari && browser.slow) {
-                    // Not handled well here. The wrong elements receive events, bar doesn't update quickly enough, etc.
-                    nowPlayingBarElement.classList.add('noMediaProgress');
-                }
-
                 itemShortcuts.on(nowPlayingBarElement);
 
                 bindEvents(nowPlayingBarElement);
@@ -325,7 +320,7 @@
         updatePlayerVolumeState(playState.IsMuted, playState.VolumeLevel);
 
         if (positionSlider && !positionSlider.dragging) {
-            positionSlider.disabled = !playState.CanSeek;
+            positionSlider.disabled = layoutManager.mobile || !playState.CanSeek;
 
             // determines if both forward and backward buffer progress will be visible
             var isProgressClear = state.MediaSource && state.MediaSource.RunTimeTicks == null;
@@ -370,7 +365,7 @@
             }
         }
 
-        if (positionSlider) {
+        if (positionSlider && !runtimeTicks) {
             positionSlider.setBufferedRanges(bufferedRanges, runtimeTicks, positionTicks);
         }
 
@@ -547,7 +542,12 @@
         if (url !== currentImgUrl) {
             currentImgUrl = url;
             isRefreshing = true;
-            imageLoader.lazyImage(nowPlayingImageElement, url);
+
+            if (url) {
+                imageLoader.lazyImage(nowPlayingImageElement, url);
+            } else {
+                nowPlayingImageElement.style.backgroundImage = '';
+            }
         }
 
         if (nowPlayingItem.Id) {
@@ -645,12 +645,17 @@
         //console.log('nowplaying event: ' + e.type);
         var player = this;
 
+        if (state.IsFullscreen === false) {
+            hideNowPlayingBar();
+            return;
+        }
+
         if (!state.NowPlayingItem || layoutManager.tv) {
             hideNowPlayingBar();
             return;
         }
 
-        if (player.isLocalPlayer && state.NowPlayingItem && state.NowPlayingItem.MediaType === 'Video') {
+        if (player.isLocalPlayer && state.NowPlayingItem && state.NowPlayingItem.MediaType !== 'Audio') {
             hideNowPlayingBar();
             return;
         }

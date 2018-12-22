@@ -10,7 +10,7 @@
     display: block;
     align-items: center;
     text-align: left;
-    padding: .25em 1em;
+    padding: .25em .25em .25em .5em;
     cursor: pointer;
     overflow: hidden;
 }
@@ -34,13 +34,13 @@
     width: 100%;
 }
 
-.listItem-border {
-    border-top-width: 1px;
-    border-top-style: solid;
+.listItem-indexnumberleft {
+    margin-right: 1em;
 }
 
-.listItem-largeImage {
-    padding: .5em .25em !important;
+.listItem-border {
+    border-bottom-width: .08em;
+    border-bottom-style: solid;
 }
 
 .listItemImage, .listItemIcon, .listItemAside {
@@ -67,7 +67,7 @@
 
 .listItemBody {
     flex-grow: 1;
-    padding: .8em 1em;
+    padding: .85em .75em;
     overflow: hidden;
     text-overflow: ellipsis;
     flex-direction: column;
@@ -75,19 +75,17 @@
     justify-content: center;
 }
 
+.layout-tv .listItemBody {
+    padding: .35em .75em;
+}
+
 .listItemBody-noleftpadding {
     padding-left: 0 !important;
 }
 
-.three-line {
-    min-height: 6.3em;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
 .listItemBodyText {
     margin: 0;
-    padding: .2em 0;
+    padding: .1em 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -97,10 +95,10 @@
 }
 
 .listItemImage {
-    width: 7.4vh;
-    height: 7.4vh;
-    min-width: 40px;
-    min-height: 40px;
+    width: 4em;
+    height: 4em;
+    min-width: 2.78em;
+    min-height: 2.78em;
     background-repeat: no-repeat;
     background-size: contain;
     flex-shrink: 0;
@@ -113,7 +111,7 @@
     width: 19.5vw;
     height: 13vw;
     background-position: center center;
-    margin-right: .5em;
+    margin-right: .75em;
 }
 
 .listItemImageButton {
@@ -121,7 +119,7 @@
     justify-self: center;
     margin: auto;
     color: rgba(255, 255, 255, .6);
-    font-size: 1.6em;
+    font-size: 1.5em;
     background: transparent;
     transition: transform 200ms ease-out;
     display: flex;
@@ -138,7 +136,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 3px;
+    padding: .21em;
 }
 
 @media all and (max-width: 64em) {
@@ -151,11 +149,6 @@
 
     .listItemImageButton {
         font-size: 1.02em !important;
-    }
-
-    .listItem-largeImage {
-        padding-right: 0 !important;
-        padding-left: .15em !important;
     }
 
     .listItemBody {
@@ -186,7 +179,8 @@
         background-color: #52B54B;
         color: #fff;
         padding: .5em;
-        border-radius: 500px;
+        border-radius: 100em;
+        margin: 0 .2em 0 .4em;
     }
 
 .listItemProgressBar {
@@ -213,13 +207,10 @@
     }
 
 .paperList {
-    padding: .5em 0;
-    margin: 1em auto;
-    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+    margin: .5em auto;
 }
 
 .paperList-clear {
-    box-shadow: none !important;
     background-color: transparent !important;
 }
 
@@ -235,8 +226,8 @@
 }
 
 .listItemIndicators {
-    right: .5vh;
-    top: .5vh;
+    right: .324em;
+    top: .324em;
     position: absolute;
     display: flex;
     align-items: center;

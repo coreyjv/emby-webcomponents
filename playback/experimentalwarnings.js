@@ -9,13 +9,24 @@ define(['connectionManager', 'globalize', 'userSettings', 'apphost'], function (
         });
     }
 
-    function showMessage(text, userSettingsKey, appHostFeature) {
+    // https://stackoverflow.com/questions/6117814/get-week-of-year-in-javascript-like-in-php
+    function getWeek(date) {
+        var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        var dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
 
-        userSettingsKey += new Date().getMonth();
+    function showMessage(text, userSettingsKey, appHostFeature) {
 
         if (appHost.supports(appHostFeature)) {
             return Promise.resolve();
         }
+
+        var now = new Date();
+
+        userSettingsKey += now.getFullYear() + '-w' + getWeek(now);
 
         if (userSettings.get(userSettingsKey, false) === '1') {
             return Promise.resolve();
@@ -67,15 +78,15 @@ define(['connectionManager', 'globalize', 'userSettings', 'apphost'], function (
             return Promise.resolve();
         }
 
-        if (item.VideoType === 'Iso') {
+        if (item.VideoType === 'Iso' || item.Container === 'iso' || item.Container === 'blurayiso' || item.Container === 'dvdiso') {
             return showIsoMessage();
         }
 
-        if (item.VideoType === 'BluRay') {
+        if (item.VideoType === 'BluRay' || item.Container === 'bluray') {
             return showBlurayMessage();
         }
 
-        if (item.VideoType === 'Dvd') {
+        if (item.VideoType === 'Dvd' || item.Container === 'dvd') {
             return showDvdMessage();
         }
 

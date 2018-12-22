@@ -4,6 +4,7 @@ define(['connectionManager', 'userSettings', 'events'], function (connectionMana
     var allTranslations = {};
     var currentCulture;
     var currentDateTimeCulture;
+    var currentLocales;
 
     function getCurrentLocale() {
 
@@ -12,6 +13,10 @@ define(['connectionManager', 'userSettings', 'events'], function (connectionMana
 
     function getCurrentDateTimeLocale() {
         return currentDateTimeCulture;
+    }
+
+    function getCurrentLocales() {
+        return currentLocales;
     }
 
     function getDefaultLanguage() {
@@ -46,6 +51,8 @@ define(['connectionManager', 'userSettings', 'events'], function (connectionMana
         culture = culture || getDefaultLanguage();
 
         currentCulture = normalizeLocaleName(culture);
+
+        currentLocales = [currentCulture];
 
         var dateTimeCulture;
         try {
@@ -205,12 +212,27 @@ define(['connectionManager', 'userSettings', 'events'], function (connectionMana
     function translateKeyFromModule(key, module) {
 
         var dictionary = getDictionary(module);
+        var result;
 
-        if (!dictionary) {
-            return key;
+        if (dictionary) {
+
+            result = dictionary[key];
+            if (result) {
+                return result;
+            }
         }
 
-        return dictionary[key] || key;
+        dictionary = getDictionary('sharedcomponents');
+
+        if (dictionary) {
+
+            result = dictionary[key];
+            if (result) {
+                return result;
+            }
+        }
+
+        return key;
     }
 
     function replaceAll(str, find, replace) {
@@ -290,6 +312,7 @@ define(['connectionManager', 'userSettings', 'events'], function (connectionMana
         defaultModule: defaultModule,
         getCurrentLocale: getCurrentLocale,
         getCurrentDateTimeLocale: getCurrentDateTimeLocale,
+        getCurrentLocales: getCurrentLocales,
         register: register
     };
 });

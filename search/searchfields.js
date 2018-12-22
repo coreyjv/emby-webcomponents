@@ -17,7 +17,7 @@
         }
 
         instance.nextSearchValue = value;
-        instance.searchTimeout = setTimeout(onSearchTimeout.bind(instance), 300);
+        instance.searchTimeout = setTimeout(onSearchTimeout.bind(instance), 400);
     }
 
     function onAlphaValueClicked(e) {
@@ -33,7 +33,11 @@
             txtSearch.value = val.length ? val.substring(0, val.length - 1) : '';
 
         } else {
-            txtSearch.value += value;
+
+            if (txtSearch.maxLength === -1 || txtSearch.value.length < txtSearch.maxLength) {
+                txtSearch.value += value;
+            }
+
         }
 
         txtSearch.dispatchEvent(new CustomEvent('input', {

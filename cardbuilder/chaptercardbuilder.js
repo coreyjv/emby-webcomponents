@@ -14,12 +14,15 @@ define(['datetime', 'imageLoader', 'connectionManager', 'layoutManager', 'browse
             return i.Type === 'Video';
         })[0] || {};
 
-        var shape = (options.backdropShape || 'backdrop');
+        var shape = (options.backdropShape || 'overflowBackdrop');
 
         if (videoStream.Width && videoStream.Height) {
 
             if ((videoStream.Width / videoStream.Height) <= 1.2) {
-                shape = (options.squareShape || 'square');
+                shape = (options.squareShape || 'overflowSquare');
+            }
+            else if ((videoStream.Width / videoStream.Height) <= 1.4) {
+                shape = 'overflowFourThree';
             }
         }
 
@@ -82,29 +85,31 @@ define(['datetime', 'imageLoader', 'connectionManager', 'layoutManager', 'browse
         var cardImageContainer = imgUrl ? ('<div class="' + cardImageContainerClass + ' lazy" data-src="' + imgUrl + '">') : ('<div class="' + cardImageContainerClass + '">');
 
         if (!imgUrl) {
-            cardImageContainer += '<i class="md-icon cardImageIcon">local_movies</i>';
+            cardImageContainer += '<i class="md-icon cardImageIcon">&#xE54D;</i>';
         }
-
-        var nameHtml = '';
-        nameHtml += '<div class="cardText">' + chapter.Name + '</div>';
-        nameHtml += '<div class="cardText">' + datetime.getDisplayRunningTime(chapter.StartPositionTicks) + '</div>';
 
         var cardBoxCssClass = 'cardBox';
         var cardScalableClass = 'cardScalable';
 
         if (layoutManager.tv) {
-            var enableFocusTransfrom = !browser.slow && !browser.xboxOne && !browser.edgeUwp;
+            var enableFocusTransfrom = !browser.slow && !browser.edge;
 
             cardScalableClass += ' card-focuscontent';
 
             if (enableFocusTransfrom) {
-                cardBoxCssClass += ' cardBox-focustransform';
+                cardBoxCssClass += ' cardBox-focustransform cardBox-withfocuscontent';
             } else {
+                cardBoxCssClass += ' cardBox-withfocuscontent-large';
                 cardScalableClass += ' card-focuscontent-large';
             }
         }
 
-        var html = '<button type="button" class="' + className + '"' + dataAttributes + '><div class="' + cardBoxCssClass + '"><div class="' + cardScalableClass + '"><div class="cardPadder-' + shape + '"></div>' + cardImageContainer + '</div><div class="innerCardFooter">' + nameHtml + '</div></div></div></button>';
+        var html = '<button type="button" class="' + className + '"' + dataAttributes + '><div class="' + cardBoxCssClass + '"><div class="' + cardScalableClass + '"><div class="cardPadder-' + shape + '"></div>' + cardImageContainer + '</div></div>';
+
+        html += '<div class="cardText cardTextCentered cardText-first">' + chapter.Name + '</div>';
+        html += '<div class="cardText cardTextCentered cardText-secondary">' + datetime.getDisplayRunningTime(chapter.StartPositionTicks) + '</div>';
+
+        html += '</div></button>';
 
         return html;
     }

@@ -1,4 +1,4 @@
-define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globalize', 'require', 'appSettings'], function (userSettings, browser, events, pluginManager, backdrop, globalize, require, appSettings) {
+define(['apphost', 'userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globalize', 'require', 'appSettings'], function (appHost, userSettings, browser, events, pluginManager, backdrop, globalize, require, appSettings) {
     'use strict';
 
     var currentSkin;
@@ -141,6 +141,15 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
         });
     }
 
+    function mapRoute(route) {
+
+        if (!currentSkin) {
+            return route;
+        }
+
+        return pluginManager.mapRoute(currentSkin, route);
+    }
+
     events.on(userSettings, 'change', function (e, name) {
         if (name === 'skin' || name === 'language') {
             loadUserSkin();
@@ -149,6 +158,7 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
 
     var themeStyleElement;
     var currentThemeId;
+    var currentThemeSettings;
     function unloadTheme() {
         var elem = themeStyleElement;
         if (elem) {
@@ -156,6 +166,7 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
             elem.parentNode.removeChild(elem);
             themeStyleElement = null;
             currentThemeId = null;
+            currentThemeSettings = null;
         }
     }
 
@@ -172,7 +183,8 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
         getCurrentSkin: getCurrentSkin,
         loadSkin: loadSkin,
         loadUserSkin: loadUserSkin,
-        getThemes: getThemes
+        getThemes: getThemes,
+        mapRoute: mapRoute
     };
 
     function onRegistrationSuccess() {
@@ -222,6 +234,7 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
         var embyWebComponentsBowerPath = 'bower_components/emby-webcomponents';
 
         return {
+            themeSettingsPath: 'text!./themes/' + selectedTheme.id + '/theme.json',
             stylesheetPath: require.toUrl(embyWebComponentsBowerPath + '/themes/' + selectedTheme.id + '/theme.css'),
             themeId: selectedTheme.id
         };
@@ -238,7 +251,7 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
         var month = date.getMonth();
         var day = date.getDate();
 
-        if (month === 9 && day >= 30) {
+        if (month === 9 && day >= 31) {
             return 'halloween';
         }
 
@@ -270,6 +283,24 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
 
         themeResources = {
         };
+    }
+
+    function onThemeLoaded(themeInfo) {
+
+        document.documentElement.classList.remove('preload');
+
+        require([themeInfo.themeSettingsPath], function (themeSettingsJson) {
+
+            currentThemeSettings = JSON.parse(themeSettingsJson);
+
+            try {
+
+                appHost.setTheme(currentThemeSettings);
+            }
+            catch (err) {
+                console.log('Error setting theme color: ' + err);
+            }
+        });
     }
 
     skinManager.setTheme = function (id, context) {
@@ -308,7 +339,11 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
 
             link.setAttribute('rel', 'stylesheet');
             link.setAttribute('type', 'text/css');
-            link.onload = resolve;
+            link.onload = function () {
+
+                onThemeLoaded(info);
+                resolve();
+            };
 
             link.setAttribute('href', linkUrl);
             document.head.appendChild(link);
@@ -332,13 +367,13 @@ define(['userSettings', 'browser', 'events', 'pluginManager', 'backdrop', 'globa
         }
 
         if (!browser.mobile && userSettings.enableThemeSongs()) {
-            if (lastSound === 0) {
+            /*if (lastSound === 0) {
 
                 if (themeResources.themeSong) {
                     playSound(themeResources.themeSong);
                 }
 
-            } else if ((new Date().getTime() - lastSound) > 30000) {
+            } else*/ if ((new Date().getTime() - lastSound) > 30000) {
                 if (themeResources.effect) {
                     playSound(themeResources.effect);
                 }
